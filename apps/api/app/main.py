@@ -1,7 +1,8 @@
 from fastapi import FastAPI
-from .routers import auth, health, tickets, comments, uploads, attachments
+from .routers import auth, health, tickets, comments, uploads, attachments, me
 from .models.user import Base
 from .db import engine, SessionLocal
+from fastapi.middleware.cors import CORSMiddleware
 
 import app.models.ticket  # noqa: F401
 import app.models.comment  # noqa: F401
@@ -27,3 +28,15 @@ app.include_router(tickets.router)
 app.include_router(comments.router)
 app.include_router(uploads.router)
 app.include_router(attachments.router)
+app.include_router(me.router)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
