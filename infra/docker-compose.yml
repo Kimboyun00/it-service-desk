@@ -17,11 +17,14 @@ services:
       DATABASE_URL: postgresql+psycopg://itsd:itsd@db:5432/itsd
       JWT_SECRET: "change-me"
       JWT_EXPIRES_MIN: "120"
-      ALLOWED_EMAIL_DOMAINS: "kdischool.ac.kr"  # 콤마로 여러 개 가능
+      ALLOWED_EMAIL_DOMAINS: "kdischool.ac.kr"
     ports:
       - "8000:8000"
     depends_on:
       - db
+    command: >
+      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
 
 volumes:
   pgdata:
