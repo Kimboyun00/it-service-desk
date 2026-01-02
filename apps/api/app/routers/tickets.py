@@ -5,7 +5,7 @@ from sqlalchemy import select
 from ..db import get_session
 from ..models.ticket import Ticket
 from ..schemas.ticket import TicketCreateIn, TicketOut
-from ..core.current_user import get_current_user  # 아래에서 파일 만들거임
+from ..core.current_user import get_current_user
 from ..models.user import User
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
@@ -38,10 +38,8 @@ def list_tickets(
     user: User = Depends(get_current_user),
 ):
     stmt = select(Ticket).order_by(Ticket.id.desc())
-
     if mine or not is_agent(user):
         stmt = stmt.where(Ticket.requester_id == user.id)
-
     return list(session.scalars(stmt).all())
 
 @router.get("/{ticket_id}", response_model=TicketOut)
@@ -53,8 +51,6 @@ def get_ticket(
     t = session.get(Ticket, ticket_id)
     if not t:
         raise HTTPException(status_code=404, detail="Not found")
-
     if (t.requester_id != user.id) and (user.role not in ("agent", "admin")):
         raise HTTPException(status_code=403, detail="Forbidden")
-
     return t

@@ -9,8 +9,8 @@ class Ticket(Base):
     title: Mapped[str] = mapped_column(String(200))
     description: Mapped[str] = mapped_column(Text)
 
-    status: Mapped[str] = mapped_column(String(32), default="open")  # open/in_progress/waiting/resolved/closed
-    priority: Mapped[str] = mapped_column(String(16), default="medium")  # low/medium/high/critical
+    status: Mapped[str] = mapped_column(String(32), default="open")
+    priority: Mapped[str] = mapped_column(String(16), default="medium")
     category: Mapped[str] = mapped_column(String(64), default="general")
 
     requester_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
