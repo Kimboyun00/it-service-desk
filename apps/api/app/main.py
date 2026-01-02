@@ -1,12 +1,11 @@
 from fastapi import FastAPI
-from .routers import auth, health, tickets, comments
+from .routers import auth, health, tickets, comments, uploads
 from .models.user import Base
 from .db import engine, SessionLocal
 
 import app.models.ticket  # noqa: F401
 import app.models.comment  # noqa: F401
 import app.models.event  # noqa
-
 
 from .core.seed import seed_users
 
@@ -26,3 +25,4 @@ app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(tickets.router)
 app.include_router(comments.router)
+app.include_router(uploads.router)

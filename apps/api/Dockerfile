@@ -12,7 +12,11 @@ RUN pip install --no-cache-dir \
     passlib==1.7.* \
     bcrypt==3.2.2 \
     PyJWT==2.* \
-    alembic==1.13.*
+    alembic==1.13.*\
+    boto3==1.*\
+    botocore==1.*\
+    python-multipart==0.0.*
+
 
 # app/ + alembic/ + alembic.ini까지 모두 포함되도록
 COPY . .
