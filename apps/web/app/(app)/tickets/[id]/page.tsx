@@ -1,46 +1,52 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { useMe } from "@/lib/auth-context";
+import { getToken } from "@/lib/auth";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+type Attachment = {
+  id: number;
+  key: string;
+  filename: string;
+  content_type: string;
+  size: number;
+  ticket_id: number | null;
+  comment_id: number | null;
+  is_internal: boolean;
+  uploaded_by: number;
+  created_at?: string | null;
+};
 
 type Comment = {
   id: number;
-  content: string;
-  is_internal: boolean;
+  ticket_id: number;
   author_id: number;
-  created_at: string;
+  body: string;
+  is_internal: boolean;
 };
 
 type Event = {
   id: number;
-  type: string; // 예: "status_changed", "assigned", ...
-  message?: string | null;
+  ticket_id: number;
   actor_id: number;
-  created_at: string;
-};
-
-type Attachment = {
-  id: number;
-  filename: string;
-  key: string;
-  size?: number | null;
-  uploaded_by: number;
-  created_at: string;
+  type: string;
+  from_value: string | null;
+  to_value: string | null;
+  note: string | null;
 };
 
 type Ticket = {
   id: number;
   title: string;
-  description?: string | null;
+  description: string;
   status: string;
+  priority: string;
+  category: string;
   requester_id: number;
-  assignee_id?: number | null;
+  assignee_id: number | null;
   created_at: string;
-  updated_at: string;
 };
 
 type TicketDetail = {
@@ -50,323 +56,253 @@ type TicketDetail = {
   attachments: Attachment[];
 };
 
+function FieldRow({ label, value }: { label: string; value?: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-12 border-b">
+      <div className="col-span-3 bg-gray-50 text-sm text-gray-600 px-3 py-2 border-r">
+        {label}
+      </div>
+      <div className="col-span-9 text-sm px-3 py-2">{value ?? "-"}</div>
+    </div>
+  );
+}
+
 export default function TicketDetailPage() {
-  const { id } = useParams<{ id: string }>();
-  const ticketId = useMemo(() => Number(id), [id]);
+  const params = useParams<{ id: string }>();
   const router = useRouter();
   const qc = useQueryClient();
+  const ticketId = Number(params.id);
 
-  const me = useMe();
-  const isStaff = me.role === "agent" || me.role === "admin";
+  const [tab, setTab] = useState<"customer" | "agent">("customer");
 
-  const detailQ = useQuery({
-    queryKey: ["ticket-detail", ticketId],
+  const { data, isLoading } = useQuery({
+    queryKey: ["ticketDetail", ticketId],
     queryFn: () => api<TicketDetail>(`/tickets/${ticketId}/detail`),
-    enabled: Number.isFinite(ticketId),
   });
 
-  // 댓글 작성(외부/내부 공용)
-  const createCommentM = useMutation({
-    mutationFn: (payload: { content: string; is_internal: boolean }) =>
-      api<Comment>(`/tickets/${ticketId}/comments`, { method: "POST", body: payload }),
-    onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: ["ticket-detail", ticketId] });
-    },
-  });
-
-  // 상태 변경 (에이전트/관리자만 성공할 것)
-  const updateStatusM = useMutation({
-    mutationFn: (payload: { status: string }) =>
-      api<any>(`/tickets/${ticketId}/status`, { method: "PATCH", body: payload }),
-    onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: ["ticket-detail", ticketId] });
-    },
-  });
-
-  // 첨부파일 다운로드
   const downloadAttachmentM = useMutation({
-    mutationFn: (key: string) =>
-      api<{ url: string }>("/uploads/presign-get", {
-        method: "POST",
-        body: { key },
-      }),
-    onSuccess: ({ url }) => {
-      // presigned GET URL로 즉시 다운로드
-      window.location.href = url;
-    },
-  });
+    mutationFn: async (attachmentId: number) => {
+      const { url } = await api<{ url: string }>(`/attachments/${attachmentId}/download-url`);
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+      const token = getToken();
 
-  // 첨부파일 업로드
-  const uploadAttachmentM = useMutation({
-    mutationFn: async (file: File) => {
-      const fd = new FormData();
-      fd.append("file", file);
-
-      // 새 엔드포인트로 업로드
-      await api(`/tickets/${ticketId}/attachments/upload`, {
-        method: "POST",
-        body: fd,
-        // api() 내부가 JSON 전용이면, 여기만 fetch로 따로 빼도 됨 (아래 참고)
+      const res = await fetch(`${apiBase}${url}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-    },
-    onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: ["ticket-detail", ticketId] });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`Download failed ${res.status}: ${text}`);
+      }
+
+      const cd = res.headers.get("content-disposition") ?? "";
+      const m = /filename="([^"]+)"/.exec(cd);
+      const filename = m?.[1] ?? `attachment-${attachmentId}`;
+
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objectUrl);
+      return true;
     },
   });
 
+  const customerAttachments = useMemo(
+    () => (data?.attachments ?? []).filter((a) => !a.is_internal),
+    [data]
+  );
+  const internalAttachments = useMemo(
+    () => (data?.attachments ?? []).filter((a) => a.is_internal),
+    [data]
+  );
 
+  const customerComments = useMemo(
+    () => (data?.comments ?? []).filter((c) => !c.is_internal),
+    [data]
+  );
+  const internalComments = useMemo(
+    () => (data?.comments ?? []).filter((c) => c.is_internal),
+    [data]
+  );
 
-  if (detailQ.isLoading) return <div className="p-6">불러오는 중...</div>;
-  if (detailQ.error)
-    return (
-      <div className="p-6 text-red-600 space-y-2">
-        <div>에러: {(detailQ.error as any).message}</div>
-        <button className="border rounded px-3 py-2" onClick={() => router.back()}>
-          뒤로
-        </button>
-      </div>
-    );
+  if (isLoading || !data) return <div className="p-6">Loading...</div>;
 
-  const data = detailQ.data!;
-  const { ticket, comments, events, attachments } = data;
-
-  const externalComments = comments.filter((c) => !c.is_internal);
-  const internalComments = comments.filter((c) => c.is_internal);
+  const t = data.ticket;
 
   return (
     <div className="p-6 space-y-4">
-      {/* 헤더 */}
+      {/* Header */}
       <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <div className="text-sm text-gray-500">Ticket #{ticket.id}</div>
-          <h1 className="text-2xl font-semibold">{ticket.title}</h1>
-          <div className="text-sm text-gray-500">
-            상태: <span className="font-medium text-gray-800">{ticket.status}</span> · 업데이트:{" "}
-            {ticket.updated_at}
+        <div>
+          <div className="text-xs text-gray-500">Ticket #{t.id}</div>
+          <h1 className="text-xl font-semibold">{t.title}</h1>
+          <div className="text-sm text-gray-600 mt-1">
+            상태: <span className="font-medium">{t.status}</span>
+            <span className="mx-2">•</span>
+            우선순위: <span className="font-medium">{t.priority}</span>
           </div>
         </div>
-
-        <button className="border rounded px-3 py-2" onClick={() => router.back()}>
+        <button className="border rounded px-3 py-2 text-sm" onClick={() => router.push("/tickets")}>
           목록으로
         </button>
       </div>
 
-      {/* 본문 + 사이드패널 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* 좌측 메인 */}
-        <div className="lg:col-span-2 space-y-4">
-          <section className="border rounded-lg p-4 space-y-2">
-            <div className="font-semibold">요청 내용</div>
-            <div className="text-sm whitespace-pre-wrap text-gray-800">
-              {ticket.description ?? "(내용 없음)"}
-            </div>
-          </section>
+      {/* Meta grid (스샷처럼 표 느낌) */}
+      <div className="border rounded">
+        <FieldRow label="요청자 ID" value={t.requester_id} />
+        <FieldRow label="담당자 ID" value={t.assignee_id ?? "-"} />
+        <FieldRow label="카테고리" value={t.category} />
+        <FieldRow label="생성일" value={new Date(t.created_at).toLocaleString()} />
+      </div>
 
-          <section className="border rounded-lg p-4 space-y-3">
-            <div className="font-semibold">외부 댓글</div>
-            <CommentList items={externalComments} emptyText="아직 외부 댓글이 없습니다." />
-            <CommentComposer
-              placeholder="사용자에게 보이는 답변/추가 질문을 입력하세요..."
-              onSubmit={(content) => createCommentM.mutate({ content, is_internal: false })}
-              loading={createCommentM.isPending}
-            />
-          </section>
-
-          <section className="border rounded-lg p-4 space-y-3">
-            <div className="font-semibold">이벤트 로그</div>
-            <EventList items={events} emptyText="이벤트가 없습니다." />
-          </section>
+      {/* Tabs */}
+      <div className="border rounded">
+        <div className="flex border-b">
+          <button
+            className={`px-4 py-2 text-sm ${
+              tab === "customer" ? "bg-white font-medium" : "bg-gray-50 text-gray-600"
+            }`}
+            onClick={() => setTab("customer")}
+          >
+            고객요청
+          </button>
+          <button
+            className={`px-4 py-2 text-sm border-l ${
+              tab === "agent" ? "bg-white font-medium" : "bg-gray-50 text-gray-600"
+            }`}
+            onClick={() => setTab("agent")}
+          >
+            담당처리
+          </button>
         </div>
 
-        {/* 우측 패널 */}
-        <div className="space-y-4">
-          {isStaff && (
-            <section className="border rounded-lg p-4 space-y-3">
-              <div className="font-semibold">처리</div>
-              <div className="text-sm text-gray-600">
-                아래 액션은 권한(에이전트/관리자)에 따라 실패할 수 있어.
-              </div>
+        {/* Tab content */}
+        <div className="p-4 space-y-4">
+          {tab === "customer" ? (
+            <>
+              <section className="space-y-2">
+                <div className="text-sm font-semibold">요청 내용</div>
+                <div className="border rounded p-3 text-sm whitespace-pre-wrap">{t.description}</div>
+              </section>
 
-              <div className="space-y-2">
-                <label className="text-sm">상태 변경</label>
-                <div className="flex gap-2">
-                  <select
-                    className="border rounded p-2 flex-1"
-                    defaultValue={ticket.status}
-                    onChange={(e) => {
-                      const next = e.target.value;
-                      if (next !== ticket.status) {
-                        updateStatusM.mutate({ status: next });
-                      }
-                    }}
-
-                  >
-                    {/* 네 백엔드 상태 enum에 맞춰 나중에 조정 */}
-                    <option value="open">open</option>
-                    <option value="in_progress">in_progress</option>
-                    <option value="resolved">resolved</option>
-                    <option value="closed">closed</option>
-                  </select>
-                </div>
-                {updateStatusM.isError && (
-                  <div className="text-xs text-red-600">
-                    상태 변경 실패: {(updateStatusM.error as any).message}
+              <section className="space-y-2">
+                <div className="text-sm font-semibold">첨부파일</div>
+                {customerAttachments.length === 0 ? (
+                  <div className="text-sm text-gray-500">첨부파일이 없습니다.</div>
+                ) : (
+                  <div className="border rounded divide-y">
+                    {customerAttachments.map((a) => (
+                      <div key={a.id} className="flex items-center justify-between px-3 py-2">
+                        <div className="text-sm">{a.filename}</div>
+                        <button
+                          className="text-sm border rounded px-2 py-1"
+                          onClick={() => downloadAttachmentM.mutate(a.id)}
+                        >
+                          다운로드
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
-              </div>
-            </section>
-          )}
+              </section>
 
-          <section className="border rounded-lg p-4 space-y-3">
-            <div className="font-semibold">첨부파일</div>
+              <section className="space-y-2">
+                <div className="text-sm font-semibold">외부 댓글</div>
+                {customerComments.length === 0 ? (
+                  <div className="text-sm text-gray-500">댓글이 없습니다.</div>
+                ) : (
+                  <div className="border rounded divide-y">
+                    {customerComments.map((c) => (
+                      <div key={c.id} className="px-3 py-2 text-sm whitespace-pre-wrap">
+                        {c.body}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </>
+          ) : (
+            <>
+              <section className="space-y-2">
+                <div className="text-sm font-semibold">내부 메모</div>
+                {internalComments.length === 0 ? (
+                  <div className="text-sm text-gray-500">내부 메모가 없습니다.</div>
+                ) : (
+                  <div className="border rounded divide-y">
+                    {internalComments.map((c) => (
+                      <div key={c.id} className="px-3 py-2 text-sm whitespace-pre-wrap">
+                        {c.body}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
 
-            <AttachmentList
-              items={attachments}
-              emptyText="첨부파일이 없습니다."
-              onDownload={(key) => downloadAttachmentM.mutate(key)}
-              loading={downloadAttachmentM.isPending}
-            />
+              <section className="space-y-2">
+                <div className="text-sm font-semibold">내부 첨부파일</div>
+                {internalAttachments.length === 0 ? (
+                  <div className="text-sm text-gray-500">내부 첨부파일이 없습니다.</div>
+                ) : (
+                  <div className="border rounded divide-y">
+                    {internalAttachments.map((a) => (
+                      <div key={a.id} className="flex items-center justify-between px-3 py-2">
+                        <div className="text-sm">{a.filename}</div>
+                        <button
+                          className="text-sm border rounded px-2 py-1"
+                          onClick={() => downloadAttachmentM.mutate(a.id)}
+                        >
+                          다운로드
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
 
-            {/* 업로드 */}
-            <label className="inline-block">
-              <input
-                type="file"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  uploadAttachmentM.mutate(file);
-                  e.currentTarget.value = ""; // 같은 파일 재선택 가능
-                }}
-              />
-              <span className="inline-block border rounded px-3 py-2 text-sm cursor-pointer">
-                {uploadAttachmentM.isPending ? "업로드 중..." : "파일 업로드"}
-              </span>
-            </label>
-          </section>
-
-
-          {isStaff && (
-            <section className="border rounded-lg p-4 space-y-3">
-              <div className="font-semibold">내부 메모</div>
-              <CommentList items={internalComments} emptyText="아직 내부 메모가 없습니다." />
-              <CommentComposer
-                placeholder="전산팀 내부 공유 메모(사용자 비공개)..."
-                onSubmit={(content) => createCommentM.mutate({ content, is_internal: true })}
-                loading={createCommentM.isPending}
-              />
-            </section>
+              {/* 여기에 상태 변경 / 담당자 지정 / 내부 업로드 UI를 추가하면 스샷과 거의 동일 */}
+              <section className="text-sm text-gray-500">
+                (다음 단계) 상태 변경/담당자 지정/내부 업로드 위젯을 이 탭에 넣으면 스샷 구성 완성.
+              </section>
+            </>
           )}
         </div>
+      </div>
+
+      {/* Event Log */}
+      <div className="border rounded">
+        <div className="px-4 py-2 border-b text-sm font-semibold">작업처리내역</div>
+        {data.events.length === 0 ? (
+          <div className="p-4 text-sm text-gray-500">이벤트가 없습니다.</div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr className="border-b">
+                <th className="text-left p-2 w-16">No</th>
+                <th className="text-left p-2 w-44">일시</th>
+                <th className="text-left p-2 w-28">유형</th>
+                <th className="text-left p-2">처리내역</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.events.map((e, idx) => (
+                <tr key={e.id} className="border-b">
+                  <td className="p-2">{idx + 1}</td>
+                  <td className="p-2 text-gray-600">
+                    {/* created_at이 없으면 note나 id 기반으로 표시하거나, 이벤트 모델에 created_at 추가 권장 */}
+                    -
+                  </td>
+                  <td className="p-2">{e.type}</td>
+                  <td className="p-2 text-gray-700">{e.note ?? "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
 }
-
-function CommentList({ items, emptyText }: { items: Comment[]; emptyText: string }) {
-  if (!items.length) return <div className="text-sm text-gray-500">{emptyText}</div>;
-  return (
-    <div className="space-y-2">
-      {items.map((c) => (
-        <div key={c.id} className="border rounded p-3">
-          <div className="text-xs text-gray-500 flex justify-between">
-            <span>작성자 #{c.author_id}</span>
-            <span>{c.created_at}</span>
-          </div>
-          <div className="text-sm whitespace-pre-wrap mt-1">{c.content}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function CommentComposer({
-  placeholder,
-  onSubmit,
-  loading,
-}: {
-  placeholder: string;
-  onSubmit: (content: string) => void;
-  loading: boolean;
-}) {
-  return (
-    <form
-      className="flex gap-2"
-      onSubmit={(e) => {
-        e.preventDefault();
-        const fd = new FormData(e.currentTarget);
-        const content = String(fd.get("content") ?? "").trim();
-        if (!content) return;
-        onSubmit(content);
-        (e.currentTarget as HTMLFormElement).reset();
-      }}
-    >
-      <input
-        name="content"
-        className="border rounded p-2 flex-1"
-        placeholder={placeholder}
-        disabled={loading}
-      />
-      <button className="border rounded px-3 py-2 disabled:opacity-60" disabled={loading} type="submit">
-        {loading ? "등록중" : "등록"}
-      </button>
-    </form>
-  );
-}
-
-function EventList({ items, emptyText }: { items: Event[]; emptyText: string }) {
-  if (!items.length) return <div className="text-sm text-gray-500">{emptyText}</div>;
-  return (
-    <div className="space-y-2">
-      {items.map((ev) => (
-        <div key={ev.id} className="border rounded p-3">
-          <div className="text-xs text-gray-500 flex justify-between">
-            <span>{ev.type}</span>
-            <span>{ev.created_at}</span>
-          </div>
-          <div className="text-sm mt-1">
-            {ev.message ?? `actor #${ev.actor_id}`}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function AttachmentList({
-    items,
-    emptyText,
-    onDownload,
-    loading,
-  }: {
-    items: Attachment[];
-    emptyText: string;
-    onDownload: (key: string) => void;
-    loading: boolean;
-  }) {
-    if (!items.length) return <div className="text-sm text-gray-500">{emptyText}</div>;
-    return (
-      <div className="space-y-2">
-        {items.map((a) => (
-          <div key={a.id} className="border rounded p-3 flex justify-between items-center">
-            <div>
-              <div className="text-sm font-medium">{a.filename}</div>
-              <div className="text-xs text-gray-500">
-                업로더 #{a.uploaded_by} · {a.created_at}
-              </div>
-            </div>
-
-            <button
-              className="border rounded px-3 py-2 text-sm"
-              onClick={() => onDownload(a.key)}
-              disabled={loading}
-            >
-              {loading ? "다운로드 중..." : "다운로드"}
-            </button>
-
-          </div>
-        ))}
-
-      </div>
-    );
-  }

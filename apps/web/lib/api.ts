@@ -32,3 +32,28 @@ export async function api<T>(
 
   return (await res.json()) as T;
 }
+
+export async function apiForm<T>(
+  path: string,
+  form: FormData,
+  opts: { method?: HttpMethod; headers?: Record<string, string> } = {}
+): Promise<T> {
+  const token = getToken();
+
+  const res = await fetch(`${baseUrl}${path}`, {
+    method: opts.method ?? "POST",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(opts.headers ?? {}),
+      // ⚠️ Content-Type 절대 직접 넣지 말기 (브라우저가 boundary 포함해서 자동 설정함)
+    },
+    body: form,
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`API ${res.status} ${res.statusText}: ${text}`);
+  }
+
+  return (await res.json()) as T;
+}

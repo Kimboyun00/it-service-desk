@@ -241,7 +241,12 @@ def get_ticket_detail(
     att_stmt = select(Attachment).where(Attachment.ticket_id == ticket_id).order_by(Attachment.id.asc())
     if not is_staff:
         att_stmt = att_stmt.where(Attachment.is_internal == False)
-    attachments = list(session.scalars(att_stmt).all())
+    attachments = (
+        session.query(Attachment)
+        .filter(Attachment.ticket_id == ticket_id)
+        .order_by(Attachment.id.desc())
+        .all()
+    )
 
     return {
         "ticket": ticket,

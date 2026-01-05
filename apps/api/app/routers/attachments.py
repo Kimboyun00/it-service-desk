@@ -8,6 +8,9 @@ from uuid import uuid4
 import anyio
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
 from sqlalchemy.orm import Session
+from pathlib import Path
+from fastapi.responses import FileResponse
+
 
 from app.core.current_user import get_current_user
 from app.core.object_storage import get_s3
@@ -26,6 +29,7 @@ from app.schemas.attachment import AttachmentOut
 #   => GET /attachments/{attachment_id}/download-url
 #   => DELETE /attachments/{attachment_id}
 
+UPLOAD_ROOT = Path("/data/uploads")
 router = APIRouter(tags=["attachments"])
 
 MAX_BYTES = 25 * 1024 * 1024  # 25MB
@@ -82,42 +86,41 @@ async def upload_attachment(
     content_type = file.content_type or "application/octet-stream"
 
     # 5) Object Storage 업로드 (boto3 sync => thread)
-    #    - presign과 동일하게 app.core.object_storage.get_s3() / settings.OBJECT_STORAGE_* 사용
-    s3 = get_s3()
-    await anyio.to_thread.run_sync(
-        lambda: s3.upload_fileobj(
-            Fileobj=spooled,
-            Bucket=settings.OBJECT_STORAGE_BUCKET,
-            Key=key,
-            ExtraArgs={"ContentType": content_type},
-        )
-    )
+    # 로컬 디스크 저장
+    UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
 
-    # 6) DB 등록
+    # key는 DB에 저장될 "상대키"로 사용 (예: uploads/123/2026/01/05/abcd.png)
+    # 지금 코드에서 key 변수를 그대로 쓰고 있다면, 앞의 "uploads/"를 유지해도 됨.
+    target_path = UPLOAD_ROOT / key.replace("uploads/", "", 1)
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # spooled 내용을 파일로 저장
+    def _write_file():
+        spooled.seek(0)
+        with open(target_path, "wb") as f:
+            f.write(spooled.read())
+
+    await anyio.to_thread.run_sync(_write_file)
+
+
+    # ===== DB: Attachment 레코드 생성 =====
     att = Attachment(
-        ticket_id=ticket_id,
-        comment_id=None,
-        filename=filename,
         key=key,
+        filename=filename,
         content_type=content_type,
         size=size,
+        ticket_id=ticket_id,
+        comment_id=None,
         is_internal=False,
         uploaded_by=user.id,
     )
     session.add(att)
 
-    # 7) 이벤트 로그
-    ev = TicketEvent(
-        ticket_id=ticket_id,
-        type="attachment_uploaded",
-        actor_id=user.id,
-        message=f"uploaded: {filename}",
-    )
-    session.add(ev)
-
     session.commit()
     session.refresh(att)
     return att
+
+
 
 
 @router.get("/attachments/{attachment_id}/download-url")
@@ -126,38 +129,24 @@ def get_download_url(
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
 ):
+    # 기존 권한 체크 로직은 그대로 유지하고…
     att = session.get(Attachment, attachment_id)
     if not att:
         raise HTTPException(status_code=404, detail="Attachment not found")
 
-    if att.ticket_id is None:
-        raise HTTPException(status_code=400, detail="Attachment is not linked to a ticket")
-
-    ticket = session.get(Ticket, att.ticket_id)
+    ticket = session.get(Ticket, att.ticket_id) if att.ticket_id else None
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
-    # 권한 체크
     if not is_staff(user):
         if ticket.requester_id != user.id:
             raise HTTPException(status_code=403, detail="Forbidden")
         if att.is_internal:
             raise HTTPException(status_code=403, detail="Forbidden")
 
-    s3 = get_s3()
-    expires = 600  # 10분
-    url = s3.generate_presigned_url(
-        ClientMethod="get_object",
-        Params={
-            "Bucket": settings.OBJECT_STORAGE_BUCKET,
-            "Key": att.key,
-            "ResponseContentDisposition": f'attachment; filename="{att.filename}"',
-            "ResponseContentType": att.content_type or "application/octet-stream",
-        },
-        ExpiresIn=expires,
-    )
+    # presign 대신 서버 다운로드 엔드포인트를 넘겨줌
+    return {"url": f"/attachments/{attachment_id}/download", "expires_in": 0}
 
-    return {"url": url, "expires_in": expires}
 
 
 @router.delete("/attachments/{attachment_id}")
@@ -187,3 +176,42 @@ def delete_attachment(
     session.commit()
 
     return {"ok": True, "deleted_attachment_id": attachment_id}
+
+@router.get("/attachments/{attachment_id}/download")
+def download_attachment(
+    attachment_id: int,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    att = session.get(Attachment, attachment_id)
+    if not att:
+        raise HTTPException(status_code=404, detail="Attachment not found")
+
+    if att.ticket_id is None:
+        raise HTTPException(status_code=400, detail="Attachment is not linked to a ticket")
+
+    ticket = session.get(Ticket, att.ticket_id)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    # 권한 체크 (기존 download-url과 동일)
+    if not is_staff(user):
+        if ticket.requester_id != user.id:
+            raise HTTPException(status_code=403, detail="Forbidden")
+        if att.is_internal:
+            raise HTTPException(status_code=403, detail="Forbidden")
+
+    # 파일 경로 계산 (upload에서 했던 규칙과 동일해야 함)
+    # DB key가 "uploads/..." 형태면 uploads/만 제거해서 /data/uploads 아래로 매핑
+    rel = att.key.replace("uploads/", "", 1)
+    path = UPLOAD_ROOT / rel
+
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="File missing on server")
+
+    return FileResponse(
+        path=str(path),
+        media_type=att.content_type or "application/octet-stream",
+        filename=att.filename,
+    )
+
