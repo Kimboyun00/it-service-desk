@@ -10,7 +10,7 @@ type LoginResponse = { access_token: string };
 export default function LoginPage() {
   const router = useRouter();
   const params = useSearchParams();
-  const redirect = params.get("redirect") || "/";
+  const redirect = params.get("redirect") || "/home";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
