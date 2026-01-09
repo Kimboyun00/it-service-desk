@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from ..schemas.auth import RegisterIn, LoginIn, TokenOut
 from ..core.config import settings
-from ..core.security import hash_password, verify_password, create_access_token
+from ..core.security import verify_password, create_access_token
 from ..models.user import User
 from ..db import get_session
 
@@ -18,17 +18,7 @@ def _email_domain_ok(email: str) -> bool:
 
 @router.post("/register")
 def register(payload: RegisterIn, session: Session = Depends(get_session)):
-    if not _email_domain_ok(payload.email):
-        raise HTTPException(status_code=400, detail="School email only.")
-
-    exists = session.scalar(select(User).where(User.email == payload.email))
-    if exists:
-        raise HTTPException(status_code=409, detail="Email already registered.")
-
-    user = User(email=payload.email, password_hash=hash_password(payload.password), is_verified=True)
-    session.add(user)
-    session.commit()
-    return {"ok": True}
+    raise HTTPException(status_code=403, detail="Registration is disabled.")
 
 @router.post("/login", response_model=TokenOut)
 def login(payload: LoginIn, session: Session = Depends(get_session)):

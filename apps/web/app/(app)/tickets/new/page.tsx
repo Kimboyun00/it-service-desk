@@ -1,21 +1,40 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { useMutation } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, apiForm } from "@/lib/api";
+import { useTicketCategories } from "@/lib/use-ticket-categories";
+import { EMPTY_DOC, isEmptyDoc, TiptapDoc } from "@/lib/tiptap";
+import ProjectPickerModal from "@/components/ProjectPickerModal";
+import PageHeader from "@/components/PageHeader";
+import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes";
+
+const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), { ssr: false });
 
 type TicketCreateIn = {
   title: string;
-  description: string;
+  description: TiptapDoc;
   priority: string;
   category: string;
+  work_type: string | null;
+  project_id: number | null;
 };
 
 type TicketOut = {
   id: number;
   title: string;
 };
+
+type Project = {
+  id: number;
+  name: string;
+  start_date?: string | null;
+  end_date?: string | null;
+};
+
+const MAX_FILE_BYTES = 25 * 1024 * 1024;
 
 const priorities = [
   { value: "low", label: "낮음" },
@@ -24,124 +43,448 @@ const priorities = [
   { value: "urgent", label: "긴급" },
 ];
 
-const categories = [
-  { value: "general", label: "일반" },
-  { value: "network", label: "네트워크" },
-  { value: "hardware", label: "하드웨어" },
-  { value: "software", label: "소프트웨어" },
-  { value: "account", label: "계정/권한" },
+const workTypeOptions = [
+  { value: "incident", label: "장애", description: "시스템이 정상적으로 동작하지 않는 경우" },
+  { value: "request", label: "요청", description: "새로운 작업이나 지원을 요청하는 경우" },
+  { value: "change", label: "변경", description: "기존 설정이나 기능을 수정하는 경우" },
+  { value: "other", label: "기타", description: "위 항목에 명확히 해당하지 않는 경우" },
 ];
+
+function formatBytes(bytes: number) {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
+  const value = bytes / Math.pow(k, i);
+  return `${value.toFixed(value >= 10 || i === 0 ? 0 : 1)} ${sizes[i]}`;
+}
 
 export default function NewTicketPage() {
   const router = useRouter();
+  const { categories, loading: categoryLoading, error: categoryError } = useTicketCategories();
+  const [categoryTouched, setCategoryTouched] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+  const [projectModalOpen, setProjectModalOpen] = useState(false);
+  const [project, setProject] = useState<Project | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+
   const [form, setForm] = useState<TicketCreateIn>({
     title: "",
-    description: "",
-    priority: "medium",
-    category: "general",
+    description: EMPTY_DOC,
+    priority: "low",
+    category: "",
+    work_type: "",
+    project_id: null,
   });
   const [error, setError] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<File[]>([]);
+
+  useUnsavedChangesWarning(isDirty);
+
+
 
   const createTicket = useMutation({
-    mutationFn: () =>
-      api<TicketOut>("/tickets", {
+    mutationFn: async ({ form: payload, files }: { form: TicketCreateIn; files: File[] }) => {
+      const created = await api<TicketOut>("/tickets", {
         method: "POST",
-        body: form,
-      }),
+        body: payload,
+      });
+
+      if (files.length) {
+        for (const file of files) {
+          const fd = new FormData();
+          fd.append("file", file);
+          await apiForm(`/tickets/${created.id}/attachments/upload`, fd);
+        }
+      }
+
+      return created;
+    },
     onSuccess: (res) => {
+      setIsDirty(false);
       router.replace(`/tickets/${res.id}`);
     },
     onError: (err: any) => {
-      setError(err?.message ?? "티켓 생성에 실패했습니다.");
+      setError(err?.message ?? "요청 생성에 실패했습니다.");
+    },
+  });
+
+  const saveDraft = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        title: form.title.trim() || null,
+        description: isEmptyDoc(form.description) ? null : form.description,
+        priority: form.priority || null,
+        category: categoryTouched ? form.category : null,
+        work_type: form.work_type?.trim() || null,
+        project_id: form.project_id ?? null,
+      };
+
+      return await api<{ id: number }>("/draft-tickets", {
+        method: "POST",
+        body: payload,
+      });
+    },
+    onSuccess: () => {
+      setIsDirty(false);
+      router.push("/tickets/drafts");
+    },
+    onError: (err: any) => {
+      setError(err?.message ?? "임시저장에 실패했습니다.");
     },
   });
 
   function handleChange<K extends keyof TicketCreateIn>(key: K, value: TicketCreateIn[K]) {
+    setIsDirty(true);
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function addFiles(fileList: FileList | null) {
+    if (!fileList) return;
+    setError(null);
+    setIsDirty(true);
+    setAttachments((prev) => {
+      const next = [...prev];
+      for (const file of Array.from(fileList)) {
+        if (file.size > MAX_FILE_BYTES) {
+          setError("첨부파일은 25MB 이하로만 가능합니다.");
+          continue;
+        }
+        next.push(file);
+      }
+      return next;
+    });
+  }
+
+  function removeFile(idx: number) {
+    setIsDirty(true);
+    setAttachments((prev) => prev.filter((_, i) => i !== idx));
   }
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    createTicket.mutate();
+
+    if (!isDirty) {
+      setError("작성 내용이 없습니다.");
+      return;
+    }
+
+    const title = form.title.trim();
+    if (!title) {
+      setError("제목을 입력하세요.");
+      return;
+    }
+    if (isEmptyDoc(form.description)) {
+      setError("내용을 입력하세요.");
+      return;
+    }
+    if (!form.category) {
+      setError("카테고리를 선택하세요.");
+      return;
+    }
+    if (!form.work_type) {
+      setError("작업 구분을 선택하세요.");
+      return;
+    }
+
+    createTicket.mutate({
+      form: {
+        ...form,
+        title,
+        work_type: form.work_type?.trim() || null,
+        project_id: form.project_id ?? null,
+      },
+      files: attachments,
+    });
+  }
+
+  function onSaveDraft() {
+    setError(null);
+    if (!isDirty) {
+      setError("작성 내용이 없습니다.");
+      return;
+    }
+    saveDraft.mutate();
+  }
+
+  function handleProjectSelect(selected: Project) {
+    setProject(selected);
+    setIsDirty(true);
+    setForm((prev) => ({ ...prev, project_id: selected.id }));
+    setProjectModalOpen(false);
+  }
+
+  function clearProject() {
+    setProject(null);
+    setIsDirty(true);
+    setForm((prev) => ({ ...prev, project_id: null }));
   }
 
   return (
-    <div className="p-6 max-w-3xl">
-      <h1 className="text-2xl font-semibold mb-4">새 티켓 생성</h1>
+    <div className="p-5 space-y-5">
+      <PageHeader title="요청 생성" />
+
       <form onSubmit={onSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">제목</label>
-          <input
-            className="w-full border rounded p-2"
-            value={form.title}
-            onChange={(e) => handleChange("title", e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium">내용</label>
-          <textarea
-            className="w-full border rounded p-2 min-h-[160px]"
-            value={form.description}
-            onChange={(e) => handleChange("description", e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">우선순위</label>
-            <select
-              className="w-full border rounded p-2"
-              value={form.priority}
-              onChange={(e) => handleChange("priority", e.target.value)}
-            >
-              {priorities.map((p) => (
-                <option key={p.value} value={p.value}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">카테고리</label>
-            <select
-              className="w-full border rounded p-2"
-              value={form.category}
-              onChange={(e) => handleChange("category", e.target.value)}
-            >
-              {categories.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {error && <div className="text-sm text-red-600">{error}</div>}
-
         <div className="flex items-center gap-2">
           <button
             type="submit"
-            className="border rounded px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+            className="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-60"
             disabled={createTicket.isPending}
           >
-            {createTicket.isPending ? "생성 중..." : "등록"}
+            {createTicket.isPending ? "등록 중..." : "등록"}
           </button>
           <button
             type="button"
-            className="text-sm text-gray-600 hover:underline"
-            onClick={() => router.back()}
-            disabled={createTicket.isPending}
+            className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+            onClick={onSaveDraft}
+            disabled={saveDraft.isPending}
           >
-            취소
+            {saveDraft.isPending ? "임시저장 중..." : "임시저장"}
           </button>
         </div>
+
+        <div className="border border-slate-200/70 rounded-2xl overflow-hidden bg-white shadow-sm">
+          <div className="grid grid-cols-12 border-b border-slate-200/70">
+            <div className="col-span-3 bg-slate-50 text-sm font-medium text-slate-700 px-3 py-2 border-r border-slate-200/70">
+              제목
+            </div>
+            <div className="col-span-9 px-3 py-2">
+              <div className="flex items-center gap-3">
+                <input
+                  className="flex-1 border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm"
+                  value={form.title}
+                  onChange={(e) => handleChange("title", e.target.value)}
+                  placeholder="요청 제목을 입력하세요."
+                  required
+                  maxLength={200}
+                  minLength={3}
+                />
+                <span className="text-[11px] text-slate-500 whitespace-nowrap">{form.title.length}/200</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-12 border-b border-slate-200/70">
+            <div className="col-span-3 bg-slate-50 text-sm font-medium text-slate-700 px-3 py-2 border-r border-slate-200/70">
+              프로젝트
+            </div>
+            <div className="col-span-9 px-3 py-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white text-slate-700 hover:bg-slate-50"
+                  onClick={() => setProjectModalOpen(true)}
+                >
+                  {project ? "프로젝트 변경" : "프로젝트 선택"}
+                </button>
+                {project && (
+                  <button type="button" className="text-sm text-slate-600 hover:underline" onClick={clearProject}>
+                    해제
+                  </button>
+                )}
+                {project && (
+                  <div className="text-sm text-slate-700">
+                    {project.name}
+                    {project.start_date || project.end_date ? (
+                      <span className="ml-2 text-sm text-slate-500">
+                        {project.start_date ?? "-"} ~ {project.end_date ?? "-"}
+                      </span>
+                    ) : null}
+                  </div>
+                )}
+                {!project && <span className="text-sm text-slate-500">미선택 가능</span>}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-12 border-b border-slate-200/70">
+            <div className="col-span-3 bg-slate-50 text-sm font-medium text-slate-700 px-3 py-2 border-r border-slate-200/70">
+              우선순위
+            </div>
+            <div className="col-span-9 px-3 py-2">
+              <select
+                className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm"
+                value={form.priority}
+                onChange={(e) => handleChange("priority", e.target.value)}
+              >
+                {priorities.map((p) => (
+                  <option key={p.value} value={p.value}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-12 border-b border-slate-200/70">
+            <div className="col-span-3 bg-slate-50 text-sm font-medium text-slate-700 px-3 py-2 border-r border-slate-200/70">
+              카테고리
+            </div>
+            <div className="col-span-9 px-3 py-2 space-y-1.5">
+              {categories.length > 0 ? (
+                <select
+                  className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm"
+                  value={form.category}
+                  onChange={(e) => {
+                    setCategoryTouched(true);
+                    handleChange("category", e.target.value);
+                  }}
+                  required
+                >
+                  <option value="" disabled>
+                    카테고리를 선택하세요
+                  </option>
+                  {categories.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm"
+                  value={form.category}
+                  onChange={(e) => {
+                    setCategoryTouched(true);
+                    handleChange("category", e.target.value);
+                  }}
+                  placeholder="카테고리 코드(예: it_service)"
+                />
+              )}
+              {categoryError && <div className="text-xs text-red-600">{categoryError}</div>}
+              {!categoryLoading && categories.length === 0 && (
+                <div className="text-sm text-slate-500">
+                  카테고리가 비어 있습니다. 관리자에서 먼저 등록하세요.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-12 border-b border-slate-200/70">
+            <div className="col-span-3 bg-slate-50 text-sm font-medium text-slate-700 px-3 py-2 border-r border-slate-200/70">
+              작업 구분
+            </div>
+            <div className="col-span-9 px-3 py-2">
+              <div className="flex flex-wrap gap-4 text-sm">
+                {workTypeOptions.map((w) => (
+                  <label key={w.value} className="inline-flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="work_type"
+                      value={w.value}
+                      checked={form.work_type === w.value}
+                      onChange={(e) => handleChange("work_type", e.target.value)}
+                      required
+                    />
+                    <span>{w.label}</span>
+                  </label>
+                ))}
+              </div>
+              <ul className="mt-3 space-y-1 text-sm text-slate-600">
+                {workTypeOptions.map((w) => (
+                  <li key={`${w.value}-desc`}>
+                    <span className="font-semibold text-slate-700">{w.label}</span>: {w.description}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="text-sm text-slate-600">파일당 최대 25MB</div>
+          <input
+            id="attachment-input"
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              addFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <div
+            className={`rounded-2xl border-2 border-dashed px-4 py-3 transition ${
+              dragActive ? "border-emerald-400 bg-emerald-50" : "border-slate-200 bg-white"
+            }`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragActive(true);
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              setDragActive(false);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragActive(false);
+              addFiles(e.dataTransfer.files);
+            }}
+          >
+            <div className="flex items-center gap-2 flex-wrap">
+              <label
+                htmlFor="attachment-input"
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white text-slate-700 hover:bg-slate-50 cursor-pointer"
+              >
+                파일 선택
+              </label>
+              <span className="text-sm text-slate-500">드래그/붙여넣기로 추가할 수 있습니다.</span>
+              {attachments.length > 0 && (
+                <button
+                  type="button"
+                  className="text-sm text-slate-600 hover:underline"
+                  onClick={() => setAttachments([])}
+                  disabled={createTicket.isPending}
+                >
+                  모두 제거
+                </button>
+              )}
+            </div>
+            <div className="mt-2 space-y-1.5">
+              {attachments.length === 0 && <p className="text-sm text-slate-500">선택된 파일이 없습니다.</p>}
+              {attachments.map((file, idx) => (
+                <div
+                  key={`${file.name}-${idx}`}
+                  className="flex items-center justify-between rounded-lg border border-slate-200 px-2 py-1 bg-slate-50"
+                >
+                  <div>
+                    <div className="text-xs text-slate-900">{file.name}</div>
+                    <div className="text-sm text-slate-600">{formatBytes(file.size)}</div>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-sm text-red-600 hover:underline"
+                    onClick={() => removeFile(idx)}
+                    disabled={createTicket.isPending}
+                  >
+                    제거
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <RichTextEditor
+            value={form.description}
+            onChange={(doc) => handleChange("description", doc)}
+            onError={setError}
+            placeholder="요청 내용을 입력하세요."
+          />
+          <p className="text-xs text-slate-500">이미지는 드래그/붙여넣기로 추가할 수 있습니다.</p>
+        </div>
+
+        {error && <div className="text-sm text-red-600">{error}</div>}
       </form>
+
+      <ProjectPickerModal
+        open={projectModalOpen}
+        selectedId={project?.id ?? null}
+        onClose={() => setProjectModalOpen(false)}
+        onSelect={handleProjectSelect}
+      />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import select
@@ -37,7 +38,7 @@ def list_comments(
 
     stmt = select(TicketComment).where(
         TicketComment.ticket_id == ticket_id
-    )
+    ).order_by(TicketComment.id.asc())
 
     if not is_staff(user):
         stmt = stmt.where(TicketComment.is_internal == False)
@@ -62,6 +63,8 @@ def create_comment(
     )
 
     session.add(comment)
+    # 업데이트 시각 갱신
+    ticket.updated_at = datetime.utcnow()
     session.commit()
     session.refresh(comment)
     return comment

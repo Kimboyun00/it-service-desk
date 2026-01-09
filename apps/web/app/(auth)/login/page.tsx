@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { setToken } from "@/lib/auth";
+import ErrorDialog from "@/components/ErrorDialog";
 
 type LoginResponse = { access_token: string };
 
@@ -11,8 +12,9 @@ export default function LoginPage() {
   const router = useRouter();
   const params = useSearchParams();
   const redirect = params.get("redirect") || "/home";
+  const presetEmail = params.get("email") || "";
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(presetEmail);
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -36,17 +38,21 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
-      <form onSubmit={onSubmit} className="w-full max-w-sm space-y-4 border rounded-lg p-6 bg-white">
-        <div>
-          <h1 className="text-xl font-semibold">IT Service Desk</h1>
-          <p className="text-sm text-gray-500">계정으로 로그인해주세요.</p>
+    <div className="app-content min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-50 via-white to-blue-gray-50/70">
+      <ErrorDialog message={err} onClose={() => setErr(null)} />
+      <form
+        onSubmit={onSubmit}
+        className="w-full max-w-sm space-y-5 rounded-2xl border border-blue-gray-100 bg-white/90 p-6 shadow-xl"
+      >
+        <div className="space-y-1 text-left">
+          <h1 className="text-xl font-semibold">KDI SCHOOL</h1>
+          <p className="text-base font-semibold text-slate-900">IT Service Desk</p>
         </div>
 
         <div className="space-y-2">
           <label className="text-sm">Email</label>
           <input
-            className="w-full border rounded p-2"
+            className="w-full rounded-lg border border-blue-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
@@ -56,7 +62,7 @@ export default function LoginPage() {
         <div className="space-y-2">
           <label className="text-sm">Password</label>
           <input
-            className="w-full border rounded p-2"
+            className="w-full rounded-lg border border-blue-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -64,9 +70,11 @@ export default function LoginPage() {
           />
         </div>
 
-        {err && <div className="text-sm text-red-600">{err}</div>}
-
-        <button className="w-full border rounded p-2 disabled:opacity-60" disabled={loading} type="submit">
+        <button
+          className="w-full rounded-lg bg-sky-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 disabled:opacity-60"
+          disabled={loading}
+          type="submit"
+        >
           {loading ? "로그인 중..." : "로그인"}
         </button>
       </form>

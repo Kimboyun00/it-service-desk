@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo } from "react";
 import Link from "next/link";
@@ -62,7 +62,7 @@ function SectionCard({
 }
 
 export default function HomePage() {
-  // 최근 티켓 목록(필요하면 limit/offset 사용)
+  // 최근 요청 목록(필요하면 limit/offset 사용)
   const { data: tickets, isLoading } = useQuery({
     queryKey: ["tickets", "home"],
     queryFn: () => api<Ticket[]>("/tickets?limit=50&offset=0"),
@@ -108,7 +108,7 @@ export default function HomePage() {
         </div>
 
         <Link href="/tickets" className="text-sm border rounded px-3 py-2 hover:bg-gray-50">
-          고객요청(티켓) 바로가기
+          고객요청 바로가기
         </Link>
       </div>
 
@@ -135,7 +135,7 @@ export default function HomePage() {
           </ul>
         </SectionCard>
 
-        {/* 요청현황(최근 티켓) */}
+        {/* 요청현황(최근 요청) */}
         <div className="lg:col-span-2">
           <SectionCard
             title="요청현황"
@@ -144,7 +144,7 @@ export default function HomePage() {
             {isLoading ? (
               <div className="text-sm text-gray-500">불러오는 중...</div>
             ) : recent.length === 0 ? (
-              <div className="text-sm text-gray-500">표시할 티켓이 없습니다.</div>
+              <div className="text-sm text-gray-500">표시할 요청이 없습니다.</div>
             ) : (
               <div className="border rounded overflow-hidden">
                 <table className="w-full text-sm">
@@ -152,8 +152,8 @@ export default function HomePage() {
                     <tr className="border-b">
                       <th className="text-left p-2 w-20">번호</th>
                       <th className="text-left p-2">제목</th>
-                      <th className="text-left p-2 w-28">상태</th>
-                      <th className="text-left p-2 w-44">접수일</th>
+                      <th className="text-center p-2 w-28">상태</th>
+                      <th className="text-center p-2 w-44">접수일</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -169,8 +169,8 @@ export default function HomePage() {
                             {t.title}
                           </Link>
                         </td>
-                        <td className="p-2">{t.status}</td>
-                        <td className="p-2 text-gray-600">
+                        <td className="p-2 text-center">{t.status}</td>
+                        <td className="p-2 text-center text-gray-600">
                           {new Date(t.created_at).toLocaleString()}
                         </td>
                       </tr>

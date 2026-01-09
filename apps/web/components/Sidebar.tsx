@@ -1,60 +1,206 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useMe } from "@/lib/auth-context";
 
-type NavItem = {
-  label: string;
+function Item({
+  href,
+  label,
+  active,
+  small = false,
+}: {
   href?: string;
-  disabled?: boolean;
-};
+  label: string;
+  active?: boolean;
+  small?: boolean;
+}) {
+  const base = small ? "text-base" : "text-lg";
+  const padding = small ? "px-3 py-2.5" : "px-4 py-3";
+  return (
+    <Link
+      href={href || "#"}
+      className={`block ${padding} rounded-xl transition-all ${
+        active ? "text-slate-900 bg-slate-100 font-semibold" : "text-slate-900 hover:bg-slate-100"
+      } ${base}`}
+    >
+      {label}
+    </Link>
+  );
+}
+
+function AccordionButton({
+  label,
+  active,
+  expanded,
+  onClick,
+}: {
+  label: string;
+  active?: boolean;
+  expanded?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center justify-between px-4 py-3 rounded-xl transition-all text-lg ${
+        active ? "text-slate-900 bg-slate-100 font-semibold" : "text-slate-900 hover:bg-slate-100"
+      }`}
+    >
+      <span>{label}</span>
+      <svg
+        className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
+        viewBox="0 0 20 20"
+        fill="currentColor"
+        aria-hidden="true"
+      >
+        <path
+          fillRule="evenodd"
+          d="M5.23 7.21a.75.75 0 011.06.02L10 11.114l3.71-3.884a.75.75 0 011.08 1.04l-4.24 4.44a.75.75 0 01-1.08 0l-4.24-4.44a.75.75 0 01.02-1.06z"
+          clipRule="evenodd"
+        />
+      </svg>
+    </button>
+  );
+}
 
 export default function Sidebar() {
+  const me = useMe();
   const pathname = usePathname();
-  const router = useRouter();
+  const [ticketsOpen, setTicketsOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
 
-  const items: NavItem[] = [
-    { label: "처리현황", href: "/tickets" },
-    { label: "처리완료", href: "/tickets?status=closed" },
-    { label: "임시저장", disabled: true },
+  useEffect(() => {
+    if (pathname.startsWith("/tickets")) {
+      setTicketsOpen(true);
+      setAdminOpen(false);
+      return;
+    }
+    if (pathname.startsWith("/admin")) {
+      setAdminOpen(true);
+      setTicketsOpen(false);
+      return;
+    }
+    setTicketsOpen(false);
+    setAdminOpen(false);
+  }, [pathname]);
+
+  const mainNav = [
+    { href: "/home", label: "HOME" },
+    { href: "/tickets", label: "고객 요청" },
+    { href: "/notices", label: "공지사항" },
+    { href: "/faq", label: "FAQ" },
+    ...(me.role === "admin" || me.role === "agent" ? [{ href: "/admin", label: "관리자" }] : []),
   ];
 
-  return (
-    <aside className="w-56 shrink-0 space-y-4">
-      <button
-        className="w-full rounded-md bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 shadow transition-colors"
-        onClick={() => router.push("/tickets/new")}
-      >
-        작성
-      </button>
+  const ticketSubNav = [
+    { href: "/tickets/new", label: "작성" },
+    { href: "/tickets", label: "처리 현황" },
+    { href: "/tickets/resolved", label: "처리 완료" },
+    { href: "/tickets/review", label: "사업 검토" },
+    { href: "/tickets/drafts", label: "임시 보관함" },
+  ];
 
-      <div className="border-t pt-3 space-y-1">
-        {items.map((item) => {
-          if (item.disabled) {
+  const adminSubNav = [
+    { href: "/admin", label: "대시보드" },
+    { href: "/admin/users", label: "사용자관리" },
+    { href: "/admin/tickets", label: "요청관리" },
+    { href: "/admin/tickets/all", label: "모든 요청 관리" },
+  ];
+
+  const isSubActive = (href: string) => {
+    if (href === "/tickets") {
+      return pathname === "/tickets" || /^\/tickets\/\d+(\/edit)?$/.test(pathname);
+    }
+    if (href === "/tickets/new") return pathname === "/tickets/new";
+    if (href.startsWith("/tickets/drafts")) return pathname.startsWith("/tickets/drafts");
+    if (href.startsWith("/tickets/resolved")) return pathname.startsWith("/tickets/resolved");
+    if (href.startsWith("/tickets/review")) return pathname.startsWith("/tickets/review");
+    if (href === "/admin") return pathname === "/admin";
+    if (href === "/admin/users") return pathname.startsWith("/admin/users");
+    if (href === "/admin/tickets") {
+      return pathname === "/admin/tickets" || (pathname.startsWith("/admin/tickets/") && !pathname.startsWith("/admin/tickets/all"));
+    }
+    if (href === "/admin/tickets/all") return pathname.startsWith("/admin/tickets/all");
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
+
+  const handleTicketsToggle = () => {
+    setTicketsOpen((prev) => !prev);
+  };
+
+  const handleAdminToggle = () => {
+    setAdminOpen((prev) => !prev);
+  };
+
+  return (
+    <aside className="relative mx-4 mt-4 lg:fixed lg:inset-y-4 lg:left-4 lg:mx-0 lg:mt-0 w-auto lg:w-80 rounded-2xl bg-white text-slate-900 shadow-xl border border-slate-200">
+      <div className="p-5 space-y-6 flex flex-col h-full">
+        <div className="space-y-1">
+          <div className="text-2xl font-black tracking-tight text-slate-900">KDI SCHOOL</div>
+          <div className="text-xl font-semibold text-slate-900">IT Service Desk</div>
+        </div>
+
+        <div className="rounded-2xl bg-slate-50 p-2 space-y-1 border border-slate-100">
+          {mainNav.map((item, idx) => {
+            const isLast = idx === mainNav.length - 1;
+            const divider = !isLast ? <div className="h-px bg-slate-200 mx-3" /> : null;
+            if (item.href === "/tickets") {
+              return (
+                <div key={item.label} className="space-y-1">
+                  <AccordionButton
+                    label={item.label}
+                    active={pathname.startsWith("/tickets")}
+                    expanded={ticketsOpen}
+                    onClick={handleTicketsToggle}
+                  />
+                  {ticketsOpen && (
+                    <div className="pl-2 space-y-1">
+                      {ticketSubNav.map((sub) => (
+                        <Item key={sub.label} href={sub.href} label={sub.label} active={isSubActive(sub.href)} small />
+                      ))}
+                    </div>
+                  )}
+                  {divider}
+                </div>
+              );
+            }
+
+            if (item.href === "/admin") {
+              return (
+                <div key={item.label} className="space-y-1">
+                  <AccordionButton
+                    label={item.label}
+                    active={pathname.startsWith("/admin")}
+                    expanded={adminOpen}
+                    onClick={handleAdminToggle}
+                  />
+                  {adminOpen && (
+                    <div className="pl-2 space-y-1">
+                      {adminSubNav.map((sub) => (
+                        <Item key={sub.label} href={sub.href} label={sub.label} active={isSubActive(sub.href)} small />
+                      ))}
+                    </div>
+                  )}
+                  {divider}
+                </div>
+              );
+            }
+
             return (
-              <div
-                key={item.label}
-                className="px-2 py-1.5 text-sm text-gray-400 cursor-not-allowed"
-                title="준비 중입니다"
-              >
-                {item.label}
+              <div key={item.label} className="space-y-1">
+                <Item
+                  href={item.href}
+                  label={item.label}
+                  active={pathname === item.href || pathname.startsWith(item.href + "/")}
+                />
+                {divider}
               </div>
             );
-          }
-
-          const isActive = item.href && (pathname === item.href || pathname.startsWith(item.href));
-          return (
-            <Link
-              key={item.label}
-              href={item.href ?? "#"}
-              className={`block px-2 py-1.5 rounded text-sm font-medium transition-colors ${
-                isActive ? "text-teal-700 bg-teal-50" : "text-gray-800 hover:text-teal-700 hover:bg-teal-50"
-              }`}
-            >
-              {item.label}
-            </Link>
-          );
-        })}
+          })}
+        </div>
       </div>
     </aside>
   );

@@ -1,22 +1,40 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
+from .user import UserSummaryOut
 
 class TicketCreateIn(BaseModel):
     title: str = Field(min_length=3, max_length=200)
-    description: str = Field(min_length=1)
+    description: dict
     priority: str = Field(default="medium")
     category: str = Field(default="general")
+    work_type: str | None = None
+    project_id: int | None = None
+
+
+class TicketUpdateIn(BaseModel):
+    title: str | None = Field(default=None, max_length=200)
+    description: dict | None = None
+    priority: str | None = None
+    category: str | None = None
+    work_type: str | None = None
+    project_id: int | None = None
 
 class TicketOut(BaseModel):
     id: int
     title: str
-    description: str
+    description: dict
     status: str
     priority: str
     category: str
+    work_type: str | None = None
+    project_id: int | None = None
+    project_name: str | None = None
     requester_id: int
     assignee_id: int | None
+    requester: UserSummaryOut | None = None
+    assignee: UserSummaryOut | None = None
     created_at: datetime
+    updated_at: datetime | None = None
 
     class Config:
         from_attributes = True
