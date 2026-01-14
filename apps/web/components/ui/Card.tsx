@@ -66,4 +66,3 @@ export function CardBody({ children, padding = "md", className = "", ...props }:
     </div>
   );
 }
-

@@ -12,12 +12,12 @@ from ..schemas.admin_user import AdminUserOut, UserRoleUpdateIn
 router = APIRouter(prefix="/admin/users", tags=["admin-users"])
 
 PENDING_STATUSES = {"open", "in_progress"}
-ALLOWED_ROLES = {"requester", "agent", "admin"}
+ALLOWED_ROLES = {"requester", "admin"}
 
 
 def require_staff(user: User) -> None:
-    if user.role not in ("admin", "agent"):
-        raise HTTPException(status_code=403, detail="Forbidden")
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
 
 
 @router.get("", response_model=list[AdminUserOut])
@@ -67,11 +67,11 @@ def update_role(
         raise HTTPException(status_code=403, detail="Forbidden")
 
     if payload.role not in ALLOWED_ROLES:
-        raise HTTPException(status_code=422, detail="Invalid role")
+        raise HTTPException(status_code=422, detail="유효하지 않은 역할입니다")
 
     target = session.get(User, user_id)
     if not target:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
 
     target.role = payload.role
     session.commit()

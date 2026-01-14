@@ -37,14 +37,14 @@ DENY_EXT = {".exe", ".bat", ".cmd", ".ps1", ".sh", ".js"}
 
 
 def is_staff(user: User) -> bool:
-    return user.role in ("agent", "admin")
+    return user.role == "admin"
 
 
 def assert_ticket_access(user: User, ticket: Ticket) -> None:
     if is_staff(user):
         return
     if ticket.requester_id != user.id:
-        raise HTTPException(status_code=403, detail="Forbidden")
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
 
 
 @router.post("/tickets/{ticket_id}/attachments/upload", response_model=AttachmentOut)
@@ -59,14 +59,14 @@ async def upload_attachment(
     # 1) 티켓 로드 + 접근권한 체크
     ticket = session.get(Ticket, ticket_id)
     if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+        raise HTTPException(status_code=404, detail="티켓을 찾을 수 없습니다")
     assert_ticket_access(user, ticket)
 
     # 2) 파일명/확장자 기본 검증
     filename = file.filename or "upload.bin"
     _, ext = os.path.splitext(filename.lower())
     if ext in DENY_EXT:
-        raise HTTPException(status_code=400, detail="File type not allowed")
+        raise HTTPException(status_code=400, detail="허용되지 않는 파일 형식입니다")
 
     # 3) 용량 제한 + 임시파일(spool)
     spooled = SpooledTemporaryFile(max_size=5 * 1024 * 1024)  # 5MB 넘어가면 디스크로 스풀
@@ -77,7 +77,7 @@ async def upload_attachment(
             break
         size += len(chunk)
         if size > MAX_BYTES:
-            raise HTTPException(status_code=413, detail="File too large")
+            raise HTTPException(status_code=413, detail="파일 크기가 너무 큽니다")
         spooled.write(chunk)
     spooled.seek(0)
 
@@ -132,7 +132,7 @@ def get_download_url(
     # 기존 권한 체크 로직은 그대로 유지하고…
     att = session.get(Attachment, attachment_id)
     if not att:
-        raise HTTPException(status_code=404, detail="Attachment not found")
+        raise HTTPException(status_code=404, detail="첨부파일을 찾을 수 없습니다")
 
     ticket = session.get(Ticket, att.ticket_id) if att.ticket_id else None
     if not ticket:
@@ -140,9 +140,9 @@ def get_download_url(
 
     if not is_staff(user):
         if ticket.requester_id != user.id:
-            raise HTTPException(status_code=403, detail="Forbidden")
+            raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
         if att.is_internal:
-            raise HTTPException(status_code=403, detail="Forbidden")
+            raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
 
     # presign 대신 서버 다운로드 엔드포인트를 넘겨줌
     return {"url": f"/attachments/{attachment_id}/download", "expires_in": 0}
@@ -156,21 +156,21 @@ def delete_attachment(
     user: User = Depends(get_current_user),
 ):
     if not is_staff(user):
-        raise HTTPException(status_code=403, detail="Forbidden")
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
 
     att = session.get(Attachment, attachment_id)
     if not att:
-        raise HTTPException(status_code=404, detail="Attachment not found")
+        raise HTTPException(status_code=404, detail="첨부파일을 찾을 수 없습니다")
 
     if att.ticket_id is None:
-        raise HTTPException(status_code=400, detail="Attachment is not linked to a ticket")
+        raise HTTPException(status_code=400, detail="티켓에 연결되지 않은 첨부파일입니다")
 
     # Object Storage에서 파일 삭제
     s3 = get_s3()
     try:
         s3.delete_object(Bucket=settings.OBJECT_STORAGE_BUCKET, Key=att.key)
     except Exception:
-        raise HTTPException(status_code=500, detail="Failed to delete object storage file")
+        raise HTTPException(status_code=500, detail="파일 삭제에 실패했습니다")
 
     session.delete(att)
     session.commit()
@@ -185,21 +185,21 @@ def download_attachment(
 ):
     att = session.get(Attachment, attachment_id)
     if not att:
-        raise HTTPException(status_code=404, detail="Attachment not found")
+        raise HTTPException(status_code=404, detail="첨부파일을 찾을 수 없습니다")
 
     if att.ticket_id is None:
-        raise HTTPException(status_code=400, detail="Attachment is not linked to a ticket")
+        raise HTTPException(status_code=400, detail="티켓에 연결되지 않은 첨부파일입니다")
 
     ticket = session.get(Ticket, att.ticket_id)
     if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+        raise HTTPException(status_code=404, detail="티켓을 찾을 수 없습니다")
 
     # 권한 체크 (기존 download-url과 동일)
     if not is_staff(user):
         if ticket.requester_id != user.id:
-            raise HTTPException(status_code=403, detail="Forbidden")
+            raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
         if att.is_internal:
-            raise HTTPException(status_code=403, detail="Forbidden")
+            raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
 
     # 파일 경로 계산 (upload에서 했던 규칙과 동일해야 함)
     # DB key가 "uploads/..." 형태면 uploads/만 제거해서 /data/uploads 아래로 매핑
@@ -207,7 +207,7 @@ def download_attachment(
     path = UPLOAD_ROOT / rel
 
     if not path.exists():
-        raise HTTPException(status_code=404, detail="File missing on server")
+        raise HTTPException(status_code=404, detail="서버에서 파일을 찾을 수 없습니다")
 
     return FileResponse(
         path=str(path),

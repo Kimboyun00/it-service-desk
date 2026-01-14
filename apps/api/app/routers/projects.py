@@ -35,7 +35,7 @@ def create_project(
     user: User = Depends(get_current_user),
 ):
     if payload.start_date and payload.end_date and payload.start_date > payload.end_date:
-        raise HTTPException(status_code=422, detail="Invalid project period")
+        raise HTTPException(status_code=422, detail="유효하지 않은 프로젝트 기간입니다")
 
     member_ids = set(payload.member_ids or [])
     member_ids.add(int(user.id))
@@ -43,7 +43,7 @@ def create_project(
     if member_ids:
         users = session.scalars(select(User).where(User.id.in_(member_ids))).all()
         if len(users) != len(member_ids):
-            raise HTTPException(status_code=404, detail="User not found")
+            raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
 
     project = Project(
         name=payload.name.strip(),

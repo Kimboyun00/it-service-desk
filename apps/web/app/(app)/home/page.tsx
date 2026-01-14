@@ -352,11 +352,6 @@ export default function HomePage() {
   return (
     <>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-neutral-900">대시보드</h1>
-          <p className="mt-1 text-sm text-neutral-600">IT 서비스 요청 현황을 한눈에 확인하세요</p>
-        </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="대기 중인 요청" value={waitingCount} variant="primary" loading={isLoading || isFetching} />
         <StatCard label="진행 중인 요청" value={doingCount} variant="warning" loading={isLoading || isFetching} />

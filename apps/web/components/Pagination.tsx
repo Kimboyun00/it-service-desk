@@ -1,4 +1,4 @@
-﻿type Props = {
+type Props = {
   page: number;
   total: number;
   pageSize?: number;

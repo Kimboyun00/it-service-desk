@@ -11,7 +11,7 @@ class User(Base):
     employee_no: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     password_hash: Mapped[str] = mapped_column(String(255))
-    role: Mapped[str] = mapped_column(String(32), default="requester")  # requester/agent/admin
+    role: Mapped[str] = mapped_column(String(32), default="requester")  # requester/admin
     title: Mapped[str | None] = mapped_column(String(100), nullable=True)
     department: Mapped[str | None] = mapped_column(String(100), nullable=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)

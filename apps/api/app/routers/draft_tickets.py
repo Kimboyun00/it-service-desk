@@ -53,7 +53,7 @@ def _validate_project(session: Session, user: User, project_id: int | None, requ
         return
     project = session.get(Project, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다")
     if not require_member:
         return
     member_stmt = select(ProjectMember).where(
@@ -61,7 +61,7 @@ def _validate_project(session: Session, user: User, project_id: int | None, requ
         ProjectMember.user_id == user.id,
     )
     if session.execute(member_stmt).first() is None:
-        raise HTTPException(status_code=403, detail="Forbidden")
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
 
 
 def _serialize_draft(d: DraftTicket, projects: dict[int, Project] | None = None) -> dict:
@@ -107,7 +107,7 @@ def create_draft(
     project_id = payload.project_id
 
     if not _has_content(title, description, priority, category, work_type, project_id):
-        raise HTTPException(status_code=422, detail="Draft is empty")
+        raise HTTPException(status_code=422, detail="임시저장 내용이 비어있습니다")
 
     _validate_project(session, user, project_id, require_member=False)
 
@@ -137,7 +137,7 @@ def get_draft(
 ):
     d = session.get(DraftTicket, draft_id)
     if not d or d.requester_id != user.id:
-        raise HTTPException(status_code=404, detail="Draft not found")
+        raise HTTPException(status_code=404, detail="임시저장을 찾을 수 없습니다")
     project_ids = {d.project_id} if d.project_id else set()
     projects = build_project_map(session, project_ids)
     return _serialize_draft(d, projects)
@@ -152,7 +152,7 @@ def update_draft(
 ):
     d = session.get(DraftTicket, draft_id)
     if not d or d.requester_id != user.id:
-        raise HTTPException(status_code=404, detail="Draft not found")
+        raise HTTPException(status_code=404, detail="임시저장을 찾을 수 없습니다")
 
     fields = payload.__fields_set__
     title = d.title
@@ -176,7 +176,7 @@ def update_draft(
         description = dump_tiptap(payload.description) if payload.description and not is_empty_doc(payload.description) else None
 
     if not _has_content(title, load_tiptap(description) if description else None, priority, category, work_type, project_id):
-        raise HTTPException(status_code=422, detail="Draft is empty")
+        raise HTTPException(status_code=422, detail="임시저장 내용이 비어있습니다")
 
     _validate_project(session, user, project_id, require_member=False)
 
@@ -202,7 +202,7 @@ def delete_draft(
 ):
     d = session.get(DraftTicket, draft_id)
     if not d or d.requester_id != user.id:
-        raise HTTPException(status_code=404, detail="Draft not found")
+        raise HTTPException(status_code=404, detail="임시저장을 찾을 수 없습니다")
     session.delete(d)
     session.commit()
     return {"ok": True}
@@ -216,17 +216,17 @@ def publish_draft(
 ):
     d = session.get(DraftTicket, draft_id)
     if not d or d.requester_id != user.id:
-        raise HTTPException(status_code=404, detail="Draft not found")
+        raise HTTPException(status_code=404, detail="임시저장을 찾을 수 없습니다")
 
     title = _normalize_str(d.title)
     if not title:
-        raise HTTPException(status_code=422, detail="Title is required")
+        raise HTTPException(status_code=422, detail="제목을 입력해주세요")
     if not d.description or is_empty_doc(load_tiptap(d.description)):
-        raise HTTPException(status_code=422, detail="Description is required")
+        raise HTTPException(status_code=422, detail="설명을 입력해주세요")
     if not d.category:
-        raise HTTPException(status_code=422, detail="Category is required")
+        raise HTTPException(status_code=422, detail="카테고리를 선택해주세요")
     if not d.priority:
-        raise HTTPException(status_code=422, detail="Priority is required")
+        raise HTTPException(status_code=422, detail="우선순위를 선택해주세요")
 
     _validate_project(session, user, d.project_id, require_member=True)
 

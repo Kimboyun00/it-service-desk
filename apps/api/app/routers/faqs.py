@@ -15,8 +15,8 @@ router = APIRouter(prefix="/faqs", tags=["faqs"])
 
 
 def require_staff(user: User) -> None:
-    if user.role not in ("admin", "agent"):
-        raise HTTPException(status_code=403, detail="Forbidden")
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
 
 
 def row_to_out(faq: KnowledgeItem, category_name: str | None, category_code: str | None) -> FaqOut:
@@ -68,7 +68,7 @@ def get_faq(faq_id: int, session: Session = Depends(get_session)):
     )
     row = session.execute(stmt).first()
     if not row:
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="FAQ를 찾을 수 없습니다")
     return row_to_out(*row)
 
 
@@ -84,7 +84,7 @@ def create_faq(
     if payload.category_id is not None:
         cat = session.get(TicketCategory, payload.category_id)
         if not cat:
-            raise HTTPException(status_code=404, detail="Category not found")
+            raise HTTPException(status_code=404, detail="카테고리를 찾을 수 없습니다")
 
     faq = KnowledgeItem(
         kind="faq",
@@ -108,19 +108,19 @@ def update_faq(
     require_staff(user)
     faq = session.get(KnowledgeItem, faq_id)
     if not faq or faq.kind != "faq":
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="FAQ를 찾을 수 없습니다")
 
     if payload.category_id is not None:
         cat = session.get(TicketCategory, payload.category_id)
         if not cat:
-            raise HTTPException(status_code=404, detail="Category not found")
+            raise HTTPException(status_code=404, detail="카테고리를 찾을 수 없습니다")
         faq.category_id = payload.category_id
 
     if payload.question is not None:
         faq.title = payload.question
     if payload.answer is not None:
         if is_empty_doc(payload.answer):
-            raise HTTPException(status_code=422, detail="Answer is required")
+            raise HTTPException(status_code=422, detail="답변을 입력해주세요")
         faq.body = dump_tiptap(payload.answer)
 
     session.commit()
@@ -136,7 +136,7 @@ def delete_faq(
     require_staff(user)
     faq = session.get(KnowledgeItem, faq_id)
     if not faq or faq.kind != "faq":
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="FAQ를 찾을 수 없습니다")
     session.delete(faq)
     session.commit()
     return {"ok": True}

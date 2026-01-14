@@ -24,12 +24,8 @@ from ..core.tiptap import dump_tiptap, load_tiptap, is_empty_doc
 router = APIRouter(prefix="/tickets", tags=["tickets"])
 
 
-def is_agent(user: User) -> bool:
-    return user.role in ("agent", "admin")
-
-
 def is_staff(user: User) -> bool:
-    return user.role in ("agent", "admin")
+    return user.role == "admin"
 
 
 def build_user_map(session: Session, ids: set[int]) -> dict[int, User]:
@@ -76,18 +72,18 @@ def create_ticket(
 ):
     now = datetime.utcnow()
     if is_empty_doc(payload.description):
-        raise HTTPException(status_code=422, detail="Description is required")
+        raise HTTPException(status_code=422, detail="설명을 입력해주세요")
     project_id = payload.project_id
     if project_id is not None:
         project = session.get(Project, project_id)
         if not project:
-            raise HTTPException(status_code=404, detail="Project not found")
+            raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다")
         member_stmt = select(ProjectMember).where(
             ProjectMember.project_id == project_id,
             ProjectMember.user_id == user.id,
         )
         if session.execute(member_stmt).first() is None:
-            raise HTTPException(status_code=403, detail="Forbidden")
+            raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
 
     t = Ticket(
         title=payload.title,
@@ -118,13 +114,13 @@ def get_ticket(
 ):
     t = session.get(Ticket, ticket_id)
     if not t:
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="티켓을 찾을 수 없습니다")
     if scope == "all":
-        if user.role not in ("agent", "admin"):
-            raise HTTPException(status_code=403, detail="Forbidden")
+        if user.role != "admin":
+            raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
     else:
         if t.requester_id != user.id:
-            raise HTTPException(status_code=403, detail="Forbidden")
+            raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
     user_ids: set[int] = {t.requester_id}
     if t.assignee_id:
         user_ids.add(t.assignee_id)
@@ -143,11 +139,11 @@ def update_ticket(
 ):
     t = session.get(Ticket, ticket_id)
     if not t:
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="티켓을 찾을 수 없습니다")
     if t.requester_id != user.id:
-        raise HTTPException(status_code=403, detail="Forbidden")
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
     if t.status != "open":
-        raise HTTPException(status_code=422, detail="Only open tickets can be updated")
+        raise HTTPException(status_code=422, detail="대기 중인 티켓만 수정할 수 있습니다")
 
     old_description_raw = t.description
     old_created_at = t.created_at
@@ -167,22 +163,22 @@ def update_ticket(
     if "title" in fields:
         title = (payload.title or "").strip()
         if not title:
-            raise HTTPException(status_code=422, detail="Title is required")
+            raise HTTPException(status_code=422, detail="제목을 입력해주세요")
         t.title = title
 
     if "description" in fields:
         if payload.description is None or is_empty_doc(payload.description):
-            raise HTTPException(status_code=422, detail="Description is required")
+            raise HTTPException(status_code=422, detail="설명을 입력해주세요")
         t.description = dump_tiptap(payload.description)
 
     if "priority" in fields:
         if payload.priority not in ALLOWED_PRIORITY:
-            raise HTTPException(status_code=422, detail=f"Invalid priority: {payload.priority}")
+            raise HTTPException(status_code=422, detail=f"유효하지 않은 우선순위입니다: {payload.priority}")
         t.priority = payload.priority
 
     if "category" in fields:
         if not payload.category:
-            raise HTTPException(status_code=422, detail="Category is required")
+            raise HTTPException(status_code=422, detail="카테고리를 선택해주세요")
         t.category = payload.category
 
     if "work_type" in fields:
@@ -192,13 +188,13 @@ def update_ticket(
         if payload.project_id is not None:
             project = session.get(Project, payload.project_id)
             if not project:
-                raise HTTPException(status_code=404, detail="Project not found")
+                raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다")
             member_stmt = select(ProjectMember).where(
                 ProjectMember.project_id == payload.project_id,
                 ProjectMember.user_id == user.id,
             )
             if session.execute(member_stmt).first() is None:
-                raise HTTPException(status_code=403, detail="Forbidden")
+                raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
         t.project_id = payload.project_id
 
     t.updated_at = datetime.utcnow()
@@ -259,11 +255,11 @@ def delete_ticket(
 ):
     t = session.get(Ticket, ticket_id)
     if not t:
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="티켓을 찾을 수 없습니다")
     if t.requester_id != user.id:
-        raise HTTPException(status_code=403, detail="Forbidden")
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
     if t.status != "open":
-        raise HTTPException(status_code=422, detail="Only open tickets can be deleted")
+        raise HTTPException(status_code=422, detail="대기 중인 티켓만 삭제할 수 있습니다")
     session.delete(t)
     session.commit()
     return {"ok": True}
@@ -277,11 +273,11 @@ def update_status(
     user: User = Depends(get_current_user),
 ):
     if not is_staff(user):
-        raise HTTPException(status_code=403, detail="Forbidden")
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
 
     ticket = session.get(Ticket, ticket_id)
     if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+        raise HTTPException(status_code=404, detail="티켓을 찾을 수 없습니다")
 
     old = ticket.status
     new = payload.status
@@ -289,7 +285,7 @@ def update_status(
     if not can_transition(old, new):
         raise HTTPException(
             status_code=422,
-            detail=f"Invalid transition: {old} -> {new}",
+            detail=f"유효하지 않은 상태 전환입니다: {old} -> {new}",
         )
 
     ticket.status = new
@@ -327,10 +323,10 @@ def list_events(
 ):
     ticket = session.get(Ticket, ticket_id)
     if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+        raise HTTPException(status_code=404, detail="티켓을 찾을 수 없습니다")
 
     if not is_staff(user) and ticket.requester_id != user.id:
-        raise HTTPException(status_code=403, detail="Forbidden")
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
 
     stmt = (
         select(TicketEvent)
@@ -348,14 +344,14 @@ def assign_ticket(
     user: User = Depends(get_current_user),
 ):
     if not is_staff(user):
-        raise HTTPException(status_code=403, detail="Forbidden")
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
 
     ticket = session.get(Ticket, ticket_id)
     if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+        raise HTTPException(status_code=404, detail="티켓을 찾을 수 없습니다")
 
     if "assignee_id" not in payload:
-        raise HTTPException(status_code=422, detail="assignee_id is required")
+        raise HTTPException(status_code=422, detail="담당자를 선택해주세요")
     assignee_id = payload.get("assignee_id")
 
     old = ticket.assignee_id
@@ -366,9 +362,9 @@ def assign_ticket(
     if assignee_id is not None:
         assignee = session.get(User, assignee_id)
         if not assignee:
-            raise HTTPException(status_code=404, detail="Assignee user not found")
-        if assignee.role not in ("agent", "admin"):
-            raise HTTPException(status_code=422, detail="Assignee must be staff (agent/admin)")
+            raise HTTPException(status_code=404, detail="담당자를 찾을 수 없습니다")
+        if assignee.role != "admin":
+            raise HTTPException(status_code=422, detail="담당자는 관리자여야 합니다")
 
     old_user = session.get(User, old) if old is not None else None
 
@@ -418,21 +414,21 @@ def list_tickets(
     stmt = select(Ticket)
 
     if scope == "all":
-        if user.role not in ("agent", "admin"):
-            raise HTTPException(status_code=403, detail="Forbidden")
+        if user.role != "admin":
+            raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
     else:
         stmt = stmt.where(Ticket.requester_id == user.id)
-        if user.role not in ("requester", "agent", "admin"):
-            raise HTTPException(status_code=403, detail="Forbidden")
+        if user.role not in ("requester", "admin"):
+            raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
 
     if status is not None:
         if status not in ALLOWED_STATUS:
-            raise HTTPException(status_code=422, detail=f"Invalid status: {status}")
+            raise HTTPException(status_code=422, detail=f"유효하지 않은 상태입니다: {status}")
         stmt = stmt.where(Ticket.status == status)
 
     if priority is not None:
         if priority not in ALLOWED_PRIORITY:
-            raise HTTPException(status_code=422, detail=f"Invalid priority: {priority}")
+            raise HTTPException(status_code=422, detail=f"유효하지 않은 우선순위입니다: {priority}")
         stmt = stmt.where(Ticket.priority == priority)
 
     if category is not None:
@@ -464,15 +460,15 @@ def get_ticket_detail(
 ):
     ticket = session.get(Ticket, ticket_id)
     if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+        raise HTTPException(status_code=404, detail="티켓을 찾을 수 없습니다")
 
-    is_staff = user.role in ("agent", "admin")
+    is_staff = user.role == "admin"
     if scope == "all":
         if not is_staff:
-            raise HTTPException(status_code=403, detail="Forbidden")
+            raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
     else:
         if ticket.requester_id != user.id:
-            raise HTTPException(status_code=403, detail="Forbidden")
+            raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
 
     comments_stmt = select(TicketComment).where(TicketComment.ticket_id == ticket_id)
     if not is_staff or scope != "all":
@@ -535,15 +531,15 @@ def add_ticket_attachment(
 ):
     ticket = session.get(Ticket, ticket_id)
     if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+        raise HTTPException(status_code=404, detail="티켓을 찾을 수 없습니다")
 
     if user.role == "requester":
         if ticket.requester_id != user.id:
-            raise HTTPException(status_code=403, detail="Forbidden")
+            raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
         if payload.is_internal:
-            raise HTTPException(status_code=403, detail="requester cannot upload internal attachment")
-    elif user.role not in ("agent", "admin"):
-        raise HTTPException(status_code=403, detail="Forbidden")
+            raise HTTPException(status_code=403, detail="요청자는 내부 첨부파일을 업로드할 수 없습니다")
+    elif user.role != "admin":
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
 
     a = Attachment(
         key=payload.key,

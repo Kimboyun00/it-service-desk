@@ -16,7 +16,7 @@ router = APIRouter(tags=["notifications"])
 
 
 def is_staff(user: User) -> bool:
-    return user.role in ("agent", "admin")
+    return user.role == "admin"
 
 
 def _event_message(event: TicketEvent) -> str:

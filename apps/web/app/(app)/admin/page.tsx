@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -104,42 +104,42 @@ function AreaLineChart({
 
   return (
     <div className="space-y-4">
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        preserveAspectRatio="none"
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          preserveAspectRatio="none"
         className={`w-full h-72 transition-opacity duration-300 ${faded ? "opacity-40" : "opacity-100"}`}
-        onMouseMove={handleMove}
-        onMouseLeave={handleLeave}
-      >
-        <defs>
-          <linearGradient id="areaGrad" x1="0" x2="0" y1="0" y2="1">
+          onMouseMove={handleMove}
+          onMouseLeave={handleLeave}
+        >
+          <defs>
+            <linearGradient id="areaGrad" x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stopColor="#14b8a6" stopOpacity="0.25" />
             <stop offset="100%" stopColor="#14b8a6" stopOpacity="0.03" />
-          </linearGradient>
-        </defs>
-        <path d={areaPath} fill="url(#areaGrad)" />
+            </linearGradient>
+          </defs>
+          <path d={areaPath} fill="url(#areaGrad)" />
         <path d={linePath} fill="none" stroke="#14b8a6" strokeWidth="3" />
-        {hoverPoint && (
+          {hoverPoint && (
           <circle cx={hoverPoint.x} cy={hoverPoint.y} r="5" fill="#14b8a6" stroke="#ffffff" strokeWidth="2.5" />
-        )}
-      </svg>
-      {hoverPoint && hoverLabel && hoverValue !== null && (
-        <div
+          )}
+        </svg>
+        {hoverPoint && hoverLabel && hoverValue !== null && (
+          <div
           className="absolute z-10 pointer-events-none rounded-lg border border-neutral-200 bg-white px-3 py-2 shadow-xl"
-          style={{
-            left: `${(hoverPoint.x / width) * 100}%`,
-            top: `${(hoverPoint.y / height) * 100}%`,
+            style={{
+              left: `${(hoverPoint.x / width) * 100}%`,
+              top: `${(hoverPoint.y / height) * 100}%`,
             transform: "translate(-50%, -180%)",
-          }}
-        >
+            }}
+          >
           <div className="font-semibold text-neutral-900 text-sm">{hoverValue}건</div>
           <div className="text-xs text-neutral-600 mt-0.5">{hoverLabel}</div>
-        </div>
-      )}
+          </div>
+        )}
       <div className="flex justify-between text-xs text-neutral-500 px-2">
-        <span>{labels[0]}</span>
-        <span>{labels[Math.floor(labels.length / 2)]}</span>
-        <span>{labels[labels.length - 1]}</span>
+          <span>{labels[0]}</span>
+          <span>{labels[Math.floor(labels.length / 2)]}</span>
+          <span>{labels[labels.length - 1]}</span>
       </div>
     </div>
   );

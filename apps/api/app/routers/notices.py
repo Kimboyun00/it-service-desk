@@ -14,8 +14,8 @@ router = APIRouter(prefix="/notices", tags=["notices"])
 
 
 def require_staff(user: User) -> None:
-    if user.role not in ("admin", "agent"):
-        raise HTTPException(status_code=403, detail="Forbidden")
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
 
 
 @router.get("", response_model=list[NoticeOut])
@@ -38,7 +38,7 @@ def list_notices(session: Session = Depends(get_session)):
 def get_notice(notice_id: int, session: Session = Depends(get_session)):
     notice = session.get(KnowledgeItem, notice_id)
     if not notice or notice.kind != "notice":
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="공지사항을 찾을 수 없습니다")
     return {
         "id": notice.id,
         "title": notice.title,
@@ -57,7 +57,7 @@ def create_notice(
 ):
     require_staff(user)
     if is_empty_doc(payload.body):
-        raise HTTPException(status_code=422, detail="Body is required")
+        raise HTTPException(status_code=422, detail="내용을 입력해주세요")
     notice = KnowledgeItem(title=payload.title, body=payload.body, author_id=user.id, kind="notice")
     notice.body = dump_tiptap(payload.body)
     session.add(notice)
@@ -83,13 +83,13 @@ def update_notice(
     require_staff(user)
     notice = session.get(KnowledgeItem, notice_id)
     if not notice or notice.kind != "notice":
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="공지사항을 찾을 수 없습니다")
 
     if payload.title is not None:
         notice.title = payload.title
     if payload.body is not None:
         if is_empty_doc(payload.body):
-            raise HTTPException(status_code=422, detail="Body is required")
+            raise HTTPException(status_code=422, detail="내용을 입력해주세요")
         notice.body = dump_tiptap(payload.body)
 
     session.commit()
@@ -113,7 +113,7 @@ def delete_notice(
     require_staff(user)
     notice = session.get(KnowledgeItem, notice_id)
     if not notice or notice.kind != "notice":
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="공지사항을 찾을 수 없습니다")
     session.delete(notice)
     session.commit()
     return {"ok": True}

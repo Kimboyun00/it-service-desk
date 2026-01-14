@@ -56,7 +56,7 @@ def presign_put(payload: PresignIn, user: User = Depends(get_current_user)):
             ExpiresIn=expires,
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"presign failed: {e}")
+        raise HTTPException(status_code=500, detail=f"파일 업로드 준비에 실패했습니다: {e}")
 
     return PresignOut(key=key, url=url, expires_in=expires)
 
@@ -67,12 +67,12 @@ async def upload_image(
     user: User = Depends(get_current_user),
 ):
     if not (file.content_type or "").startswith("image/"):
-        raise HTTPException(status_code=400, detail="Only image uploads are allowed")
+        raise HTTPException(status_code=400, detail="이미지 파일만 업로드할 수 있습니다")
 
     filename = file.filename or "image.bin"
     _, ext = os.path.splitext(filename.lower())
     if ext and ext not in ALLOW_IMAGE_EXT:
-        raise HTTPException(status_code=400, detail="Unsupported image type")
+        raise HTTPException(status_code=400, detail="지원하지 않는 이미지 형식입니다")
 
     spooled = SpooledTemporaryFile(max_size=2 * 1024 * 1024)
     size = 0
@@ -82,7 +82,7 @@ async def upload_image(
             break
         size += len(chunk)
         if size > MAX_IMAGE_BYTES:
-            raise HTTPException(status_code=413, detail="Image too large")
+            raise HTTPException(status_code=413, detail="이미지 크기가 너무 큽니다")
         spooled.write(chunk)
     spooled.seek(0)
 
@@ -111,10 +111,10 @@ async def upload_image(
 @router.get("/{key:path}")
 def serve_upload(key: str):
     if ".." in key:
-        raise HTTPException(status_code=400, detail="Invalid path")
+        raise HTTPException(status_code=400, detail="유효하지 않은 경로입니다")
     path = (UPLOAD_ROOT / key).resolve()
     if not str(path).startswith(str(UPLOAD_ROOT.resolve())):
-        raise HTTPException(status_code=400, detail="Invalid path")
+        raise HTTPException(status_code=400, detail="유효하지 않은 경로입니다")
     if not path.exists():
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="파일을 찾을 수 없습니다")
     return FileResponse(str(path))

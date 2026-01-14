@@ -13,19 +13,19 @@ from ..models.user import User
 router = APIRouter(tags=["comments"])
 
 def is_staff(user: User) -> bool:
-    return user.role in ("agent", "admin")
+    return user.role == "admin"
 
 def get_ticket_or_404(session: Session, ticket_id: int) -> Ticket:
     t = session.get(Ticket, ticket_id)
     if not t:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+        raise HTTPException(status_code=404, detail="티켓을 찾을 수 없습니다")
     return t
 
 def assert_access(user: User, ticket: Ticket):
     if is_staff(user):
         return
     if ticket.requester_id != user.id:
-        raise HTTPException(status_code=403, detail="Forbidden")
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
 
 @router.get("/tickets/{ticket_id}/comments", response_model=list[CommentOut])
 def list_comments(

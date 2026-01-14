@@ -24,11 +24,11 @@ def create_category(
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
 ):
-    if user.role not in ("admin", "agent"):
-        raise HTTPException(status_code=403, detail="Forbidden")
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
     exists = session.scalar(select(TicketCategory).where(TicketCategory.code == payload.code))
     if exists:
-        raise HTTPException(status_code=409, detail="Category code already exists")
+        raise HTTPException(status_code=409, detail="이미 존재하는 카테고리 코드입니다")
     cat = TicketCategory(code=payload.code, name=payload.name, description=payload.description)
     session.add(cat)
     session.commit()
