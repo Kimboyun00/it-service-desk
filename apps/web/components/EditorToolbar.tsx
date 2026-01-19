@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import type { Editor } from "@tiptap/react";
+import type { Level } from "@tiptap/extension-heading";
 
 type Props = {
   editor: Editor;
@@ -67,7 +68,9 @@ export default function EditorToolbar({ editor, onOpenLink, onRemoveLink, onPick
             editor.chain().focus().setParagraph().run();
           } else {
             const level = Number(value.replace("h", ""));
-            editor.chain().focus().toggleHeading({ level }).run();
+            if ([1, 2, 3, 4].includes(level)) {
+              editor.chain().focus().toggleHeading({ level: level as Level }).run();
+            }
           }
         }}
       >
