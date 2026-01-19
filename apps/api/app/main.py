@@ -38,6 +38,7 @@ def on_startup():
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS emp_no VARCHAR(50)"))
             conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS kor_name VARCHAR(100)"))
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS eng_name VARCHAR(100)"))
             conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255)"))
             conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(32)"))
             conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS title VARCHAR(100)"))

@@ -111,9 +111,9 @@ export default function TopBar() {
         >
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xs font-semibold">
-              {(me.kor_name?.[0] || me.emp_no?.[0] || "U").toUpperCase()}
+              {(me.eng_name?.[0] || me.kor_name?.[0] || me.emp_no?.[0] || "U").toUpperCase()}
             </div>
-            <span className="font-medium">{me.emp_no ?? me.kor_name ?? "사용자"}</span>
+            <span className="font-medium">{me.eng_name ?? me.kor_name ?? me.emp_no ?? "사용자"}</span>
           </div>
           <svg
             viewBox="0 0 20 20"

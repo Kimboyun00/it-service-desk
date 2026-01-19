@@ -9,6 +9,7 @@ def me(user: User = Depends(get_current_user)):
     return {
         "emp_no": user.emp_no,
         "kor_name": user.kor_name,
+        "eng_name": user.eng_name,
         "title": user.title,
         "department": user.department,
         "role": user.role,

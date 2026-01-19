@@ -52,6 +52,7 @@ def _source_query(schema: str) -> str:
         SELECT
             gm.emp_no,
             gm.kor_name,
+            gm.eng_name,
             cc.name AS title,
             d.dept_kname AS department,
             cu.password,
@@ -128,6 +129,7 @@ def sync_users_once() -> int:
                     INSERT INTO users (
                         emp_no,
                         kor_name,
+                        eng_name,
                         title,
                         department,
                         password,
@@ -140,6 +142,7 @@ def sync_users_once() -> int:
                     VALUES (
                         :emp_no,
                         :kor_name,
+                        :eng_name,
                         :title,
                         :department,
                         :password,
@@ -151,6 +154,7 @@ def sync_users_once() -> int:
                     )
                     ON CONFLICT (emp_no) DO UPDATE SET
                         kor_name = EXCLUDED.kor_name,
+                        eng_name = EXCLUDED.eng_name,
                         title = EXCLUDED.title,
                         department = EXCLUDED.department,
                         password = EXCLUDED.password,
@@ -161,6 +165,7 @@ def sync_users_once() -> int:
                 {
                     "emp_no": row.get("emp_no"),
                     "kor_name": row.get("kor_name"),
+                    "eng_name": row.get("eng_name"),
                     "title": row.get("title"),
                     "department": row.get("department"),
                     "password": row.get("password"),

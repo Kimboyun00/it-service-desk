@@ -9,6 +9,7 @@ class User(Base):
 
     emp_no: Mapped[str] = mapped_column(String(50), primary_key=True)
     kor_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    eng_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     password: Mapped[str] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(32), default="requester")  # requester/admin
     title: Mapped[str | None] = mapped_column(String(100), nullable=True)

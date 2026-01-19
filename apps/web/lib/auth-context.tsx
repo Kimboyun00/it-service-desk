@@ -5,6 +5,7 @@ import { createContext, useContext } from "react";
 export type Me = {
   emp_no: string;
   kor_name?: string | null;
+  eng_name?: string | null;
   title?: string | null;
   department?: string | null;
   role: "requester" | "admin";
