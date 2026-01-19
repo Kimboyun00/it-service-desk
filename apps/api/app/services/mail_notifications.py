@@ -1,3 +1,4 @@
+@'
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -27,7 +28,7 @@ def _wrap_template(title: str, body: str, link_url: str, link_label: str) -> tup
         f"{title}\n\n"
         f"{body}\n\n"
         f"{link_label}: {link_url}\n\n"
-        "º» ¸ŞÀÏÀº ½Ã½ºÅÛ ¾Ë¸²¿ëÀ¸·Î ¹ß¼ÛµÇ¾ú½À´Ï´Ù."
+        "ë³¸ ë©”ì¼ì€ ì‹œìŠ¤í…œ ì•Œë¦¼ìš©ìœ¼ë¡œ ë°œì†¡ë˜ì—ˆìŠµë‹ˆë‹¤."
     )
     html = f"""
     <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1f2937;">
@@ -37,7 +38,7 @@ def _wrap_template(title: str, body: str, link_url: str, link_label: str) -> tup
         <a href="{link_url}" style="color: #1d4ed8; font-weight: 600;">{link_label}</a>
       </p>
       <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;" />
-      <p style="margin: 0; font-size: 12px; color: #6b7280;">º» ¸ŞÀÏÀº ½Ã½ºÅÛ ¾Ë¸²¿ëÀ¸·Î ¹ß¼ÛµÇ¾ú½À´Ï´Ù.</p>
+      <p style="margin: 0; font-size: 12px; color: #6b7280;">ë³¸ ë©”ì¼ì€ ì‹œìŠ¤í…œ ì•Œë¦¼ìš©ìœ¼ë¡œ ë°œì†¡ë˜ì—ˆìŠµë‹ˆë‹¤.</p>
     </div>
     """
     return text, html
@@ -56,7 +57,7 @@ def enqueue_ticket_mail(
     if not recipient.email:
         return
     link = _ticket_link(ticket.id, is_admin_link)
-    text, html = _wrap_template(subject, body, link, "¿äÃ» º¸±â")
+    text, html = _wrap_template(subject, body, link, "ìš”ì²­ ë³´ê¸°")
     enqueue_mail(
         MailPayload(
             event_key=event_key,
@@ -85,7 +86,7 @@ def enqueue_comment_mail(
     if not recipient.email:
         return
     link = _ticket_link(ticket.id, is_admin_link)
-    text, html = _wrap_template(subject, body, link, "´ñ±Û º¸±â")
+    text, html = _wrap_template(subject, body, link, "ëŒ“ê¸€ ë³´ê¸°")
     enqueue_mail(
         MailPayload(
             event_key=event_key,
