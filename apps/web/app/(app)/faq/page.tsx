@@ -182,7 +182,7 @@ export default function FaqPage() {
                         수정
                       </button>
                       <button
-                        className="px-3 py-1.5 text-xs font-medium rounded-lg bg-danger-600 text-white hover:bg-danger-700 transition-colors shadow-sm"
+                        className="px-3 py-1.5 text-xs font-medium rounded-lg border border-red-300 bg-red-50 text-neutral-700 hover:bg-red-100 transition-colors shadow-sm"
                         onClick={() => handleDelete(f.id)}
                       >
                         삭제

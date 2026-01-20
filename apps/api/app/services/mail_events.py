@@ -70,15 +70,15 @@ def _assignee_label(assignee: User | None) -> str:
     return _user_label(assignee, assignee.emp_no)
 
 
-def _build_subject(alert_type: str, status_label: str, title: str) -> str:
-    return f"[KDIS-DESK][{alert_type}][{status_label}] {title}"
+def _build_subject(summary: str) -> str:
+    return f"[KDIS-DESK] {summary}"
 
 
 def notify_requester_ticket_created(ticket: Ticket, requester: User) -> None:
     status_label = _status_label(ticket.status)
     priority_label = _priority_label(ticket.priority)
-    subject = _build_subject("신규요청", _subject_status(ticket.status), ticket.title)
     summary = "요청이 접수되었습니다."
+    subject = _build_subject(summary)
     fields = [
         ("요청 제목", ticket.title),
         ("요청자", _user_label(requester, requester.emp_no)),
@@ -103,8 +103,8 @@ def notify_admins_ticket_created(ticket: Ticket, requester: User, admins: list[U
     for admin in admins:
         status_label = _status_label(ticket.status)
         priority_label = _priority_label(ticket.priority)
-        subject = _build_subject("신규요청", _subject_status(ticket.status), ticket.title)
         summary = "신규 요청이 접수되었습니다."
+        subject = _build_subject(summary)
         fields = [
             ("요청 제목", ticket.title),
             ("요청자", requester_label),
@@ -128,8 +128,8 @@ def notify_requester_assignee_changed(ticket: Ticket, requester: User, assignee:
     assignee_label = _assignee_label(assignee)
     status_label = _status_label(ticket.status)
     priority_label = _priority_label(ticket.priority)
-    subject = _build_subject("담당변경", _subject_status(ticket.status), ticket.title)
     summary = "담당자가 변경되었습니다."
+    subject = _build_subject(summary)
     fields = [
         ("요청 제목", ticket.title),
         ("담당자", assignee_label),
@@ -153,8 +153,8 @@ def notify_requester_assignee_changed(ticket: Ticket, requester: User, assignee:
 def notify_admin_assigned(ticket: Ticket, assignee: User) -> None:
     status_label = _status_label(ticket.status)
     priority_label = _priority_label(ticket.priority)
-    subject = _build_subject("담당배정", _subject_status(ticket.status), ticket.title)
     summary = "요청 담당자로 배정되었습니다."
+    subject = _build_subject(summary)
     fields = [
         ("요청 제목", ticket.title),
         ("담당자", _assignee_label(assignee)),
@@ -177,8 +177,8 @@ def notify_admin_assigned(ticket: Ticket, assignee: User) -> None:
 def notify_requester_status_changed(ticket: Ticket, requester: User, new_status: str) -> None:
     status_label = _status_label(new_status)
     priority_label = _priority_label(ticket.priority)
-    subject = _build_subject("상태변경", _subject_status(new_status), ticket.title)
     summary = "요청 상태가 변경되었습니다."
+    subject = _build_subject(summary)
     fields = [
         ("요청 제목", ticket.title),
         ("변경된 상태", status_label),
@@ -208,8 +208,8 @@ def notify_requester_commented(
     for admin in admins:
         status_label = _status_label(ticket.status)
         priority_label = _priority_label(ticket.priority)
-        subject = _build_subject("요청자댓글", _subject_status(ticket.status), ticket.title)
         summary = "요청에 댓글이 등록되었습니다."
+        subject = _build_subject(summary)
         fields = [
             ("요청 제목", ticket.title),
             ("요청자", requester_label),
@@ -234,8 +234,8 @@ def notify_requester_commented(
 def notify_admin_commented(ticket: Ticket, comment: TicketComment, requester: User, author: User) -> None:
     status_label = _status_label(ticket.status)
     priority_label = _priority_label(ticket.priority)
-    subject = _build_subject("담당자댓글", _subject_status(ticket.status), ticket.title)
     summary = "담당자가 댓글을 등록했습니다."
+    subject = _build_subject(summary)
     fields = [
         ("요청 제목", ticket.title),
         ("담당자", _user_label(author, author.emp_no)),

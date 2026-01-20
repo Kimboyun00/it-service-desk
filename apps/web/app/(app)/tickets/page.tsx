@@ -323,10 +323,9 @@ export default function TicketsPage() {
                   <th className="text-left px-4 py-3 font-semibold text-neutral-700">제목</th>
                   <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-28">상태</th>
                   <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-28">우선순위</th>
-                  <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-40 whitespace-nowrap">담당자</th>
                   <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-28">작업 구분</th>
-                  <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-32">카테고리</th>
-                  <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-44 whitespace-nowrap">업데이트</th>
+                  <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-40 whitespace-nowrap">카테고리</th>
+                  <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-44 whitespace-nowrap">최근 업데이트</th>
               </tr>
             </thead>
             <tbody>
@@ -340,8 +339,7 @@ export default function TicketsPage() {
                   }}
                 >
                     <td className="px-4 py-3.5">
-                      <div className="font-medium text-neutral-900">{t.title}</div>
-                      <div className="text-xs text-neutral-500 mt-1">{formatUser(t.requester, t.requester_emp_no)}</div>
+                      <div className="min-h-[40px] flex items-center font-medium text-neutral-900">{t.title}</div>
                   </td>
                     <td className="px-4 py-3.5 text-center">
                     <StatusBadge status={t.status} />
@@ -349,15 +347,14 @@ export default function TicketsPage() {
                     <td className="px-4 py-3.5 text-center">
                     <PriorityBadge priority={t.priority} />
                   </td>
-                    <td className="px-4 py-3.5 text-center text-neutral-700 whitespace-nowrap">{formatUser(t.assignee, t.assignee_emp_no, "미배정")}</td>
                     <td className="px-4 py-3.5 text-center text-neutral-700">{workTypeLabel(t.work_type)}</td>
-                    <td className="px-4 py-3.5 text-center text-neutral-700">{categoryLabel(t.category_id)}</td>
+                    <td className="px-4 py-3.5 text-center text-neutral-700 whitespace-nowrap">{categoryLabel(t.category_id)}</td>
                     <td className="px-4 py-3.5 text-center text-neutral-600 whitespace-nowrap">{formatDate(t.updated_at)}</td>
                 </tr>
               ))}
                 {!unreadTickets.length && (
                   <tr>
-                    <td className="px-4 py-8 text-neutral-500 text-center" colSpan={7}>
+                    <td className="px-4 py-8 text-neutral-500 text-center" colSpan={6}>
                     읽지 않은 요청이 없습니다.
                   </td>
                 </tr>
@@ -425,10 +422,9 @@ export default function TicketsPage() {
                   <th className="text-left px-4 py-3 font-semibold text-neutral-700">제목</th>
                   <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-28">상태</th>
                   <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-28">우선순위</th>
-                  <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-40 whitespace-nowrap">담당자</th>
                   <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-28">작업 구분</th>
-                  <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-32">카테고리</th>
-                  <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-44 whitespace-nowrap">업데이트</th>
+                  <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-40 whitespace-nowrap">카테고리</th>
+                  <th className="text-center px-4 py-3 font-semibold text-neutral-700 w-44 whitespace-nowrap">최근 업데이트</th>
               </tr>
             </thead>
             <tbody>
@@ -442,8 +438,7 @@ export default function TicketsPage() {
                   }}
                 >
                     <td className="px-4 py-3.5">
-                      <div className="font-medium text-neutral-900">{t.title}</div>
-                      <div className="text-xs text-neutral-500 mt-1">{formatUser(t.requester, t.requester_emp_no)}</div>
+                      <div className="min-h-[40px] flex items-center font-medium text-neutral-900">{t.title}</div>
                   </td>
                     <td className="px-4 py-3.5 text-center">
                     <StatusBadge status={t.status} />
@@ -451,15 +446,14 @@ export default function TicketsPage() {
                     <td className="px-4 py-3.5 text-center">
                     <PriorityBadge priority={t.priority} />
                   </td>
-                    <td className="px-4 py-3.5 text-center text-neutral-700 whitespace-nowrap">{formatUser(t.assignee, t.assignee_emp_no, "미배정")}</td>
                     <td className="px-4 py-3.5 text-center text-neutral-700">{workTypeLabel(t.work_type)}</td>
-                    <td className="px-4 py-3.5 text-center text-neutral-700">{categoryLabel(t.category_id)}</td>
+                    <td className="px-4 py-3.5 text-center text-neutral-700 whitespace-nowrap">{categoryLabel(t.category_id)}</td>
                     <td className="px-4 py-3.5 text-center text-neutral-600 whitespace-nowrap">{formatDate(t.updated_at)}</td>
                 </tr>
               ))}
                 {!pageItems.length && (
                   <tr>
-                    <td className="px-4 py-8 text-neutral-500 text-center" colSpan={7}>
+                    <td className="px-4 py-8 text-neutral-500 text-center" colSpan={6}>
                     조건에 맞는 요청이 없습니다.
                   </td>
                 </tr>

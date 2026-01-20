@@ -237,18 +237,16 @@ export default function ReviewTicketsPage() {
               <th className="text-left p-3">제목</th>
               <th className="text-center p-3 w-28">상태</th>
               <th className="text-center p-3 w-28">우선순위</th>
-              <th className="text-center p-3 w-40 whitespace-nowrap">담당자</th>
               <th className="text-center p-3 w-28">작업 구분</th>
-              <th className="text-center p-3 w-32">카테고리</th>
-              <th className="text-center p-3 w-44 whitespace-nowrap">업데이트</th>
+              <th className="text-center p-3 w-40 whitespace-nowrap">카테고리</th>
+              <th className="text-center p-3 w-44 whitespace-nowrap">최근 업데이트</th>
             </tr>
           </thead>
           <tbody>
             {pageItems.map((t) => (
               <tr key={t.id} className="border-t cursor-pointer hover:bg-slate-50" onClick={() => router.push(`/tickets/${t.id}`)}>
                 <td className="p-3 text-left">
-                  <div className="font-medium text-slate-900">{t.title}</div>
-                  <div className="text-xs text-slate-500 mt-0.5">{formatUser(t.requester, t.requester_emp_no)}</div>
+                  <div className="min-h-[40px] flex items-center font-medium text-slate-900">{t.title}</div>
                 </td>
                 <td className="p-3 text-center">
                   <StatusBadge status={t.status} />
@@ -256,15 +254,14 @@ export default function ReviewTicketsPage() {
                 <td className="p-3 text-center">
                   <PriorityBadge priority={t.priority} />
                 </td>
-                <td className="p-3 text-center whitespace-nowrap">{formatUser(t.assignee, t.assignee_emp_no, "미배정")}</td>
                 <td className="p-3 text-center">{workTypeLabel(t.work_type)}</td>
-                <td className="p-3 text-center">{categoryLabel(t.category_id)}</td>
+                <td className="p-3 text-center whitespace-nowrap">{categoryLabel(t.category_id)}</td>
                 <td className="p-3 text-center text-slate-600 whitespace-nowrap">{formatDate(t.updated_at)}</td>
               </tr>
             ))}
             {!pageItems.length && !isLoading && (
               <tr className="border-t">
-                <td className="p-4 text-slate-500 text-center" colSpan={7}>
+                <td className="p-4 text-slate-500 text-center" colSpan={6}>
                   사업 검토 요청이 없습니다.
                 </td>
               </tr>

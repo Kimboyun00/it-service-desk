@@ -248,7 +248,7 @@ export default function NoticeDetailPage() {
           ) : (
             <h1 className="text-2xl font-semibold">{notice.title}</h1>
           )}
-          <div className="text-xs text-gray-500">??? {formatDate(notice.created_at)}</div>
+          <div className="text-xs text-gray-500">생성일 {formatDate(notice.created_at)}</div>
         </div>
       </div>
 
@@ -266,7 +266,7 @@ export default function NoticeDetailPage() {
         <div className="border rounded-lg bg-white p-4 shadow-sm space-y-4">
           <div className="text-sm font-semibold">첨부파일</div>
           <div className="space-y-2">
-            <div className="text-sm text-slate-600">??? ?? 25MB</div>
+            <div className="text-sm text-slate-600">파일당 최대 25MB</div>
             <input
               id="notice-edit-attachment-input"
               type="file"
@@ -312,7 +312,7 @@ export default function NoticeDetailPage() {
                     }
                   }}
                 >
-                  ?? ??
+                  파일 선택
                 </button>
                 <span className="text-sm text-slate-500">드래그/붙여넣기로 추가할 수 있습니다.</span>
                 {newAttachments.length > 0 && (
@@ -322,7 +322,7 @@ export default function NoticeDetailPage() {
                     onClick={() => setNewAttachments([])}
                     disabled={saving}
                   >
-                    ?? ??
+                    모두 제거
                   </button>
                 )}
               </div>
@@ -345,7 +345,7 @@ export default function NoticeDetailPage() {
                       onClick={() => removeNewFile(idx)}
                       disabled={saving}
                     >
-                      ??
+                      제거
                     </button>
                   </div>
                 ))}
@@ -375,7 +375,7 @@ export default function NoticeDetailPage() {
                         onClick={() => deleteExistingAttachment(a.id)}
                         disabled={deletingAttachmentId === a.id || saving}
                       >
-                        {deletingAttachmentId === a.id ? "?? ?.." : "??"}
+                        {deletingAttachmentId === a.id ? "삭제 중.." : "삭제"}
                       </button>
                     </div>
                   </div>
@@ -409,7 +409,7 @@ export default function NoticeDetailPage() {
       )}
 
       <div className="flex items-center justify-end gap-2">
-        <button className="px-4 py-2 text-sm rounded border bg-white text-gray-800 hover:bg-gray-100" onClick={() => router.push("/notices")}>??</button>
+        <button className="px-4 py-2 text-sm rounded border bg-white text-gray-800 hover:bg-gray-100" onClick={() => router.push("/notices")}>목록</button>
         {canEdit && (
           <>
             {editing ? (
@@ -423,14 +423,14 @@ export default function NoticeDetailPage() {
                   }}
                   disabled={saving}
                 >
-                  ??
+                  제거
                 </button>
                 <button
                   className="px-4 py-2 text-sm rounded border bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
                   onClick={handleSave}
                   disabled={saving}
                 >
-                  ??
+                  제거
                 </button>
               </>
             ) : (
@@ -442,14 +442,14 @@ export default function NoticeDetailPage() {
                     setNewAttachments([]);
                   }}
                 >
-                  ??
+                  제거
                 </button>
                 <button
                   className="px-4 py-2 text-sm rounded border bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
                   onClick={handleDelete}
                   disabled={deleting}
                 >
-                  ??
+                  제거
                 </button>
               </>
             )}

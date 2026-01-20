@@ -388,16 +388,15 @@ export default function HomePage() {
               <table className="w-full text-base text-center">
                 <thead className="bg-gray-50">
                   <tr className="border-b">
-                    <th className="text-left p-2 w-[55%]">제목</th>
-                    <th className="text-center p-2 w-[15%]">상태</th>
-                    <th className="text-center p-2 w-[15%] whitespace-nowrap">담당</th>
-                    <th className="text-center p-2 w-[15%] whitespace-nowrap">업데이트</th>
+                    <th className="text-left p-2 w-[60%]">제목</th>
+                    <th className="text-center p-2 w-[20%]">상태</th>
+                    <th className="text-center p-2 w-[20%] whitespace-nowrap">최근 업데이트</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(recent ?? []).length === 0 ? (
                     <tr>
-                      <td className="p-3 text-gray-500" colSpan={4}>
+                      <td className="p-3 text-gray-500" colSpan={3}>
                         최근 요청이 없습니다.
                       </td>
                     </tr>
@@ -415,9 +414,6 @@ export default function HomePage() {
                             <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-sm font-medium ${b.className}`}>
                               {b.label}
                             </span>
-                          </td>
-                          <td className="p-2 text-center text-gray-700 whitespace-nowrap">
-                            {formatUser(t.assignee, t.assignee_emp_no, "미배정")}
                           </td>
                           <td className="p-2 text-center text-gray-600 whitespace-nowrap">
                             {formatDate(t.updated_at || t.created_at)}

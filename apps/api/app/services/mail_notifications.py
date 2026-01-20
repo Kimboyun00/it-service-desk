@@ -122,8 +122,8 @@ def _render_html(
   <body style=\"margin:0;padding:24px;background:#f5f7fb;\">
     <table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"background:#f5f7fb;\">
       <tr>
-        <td align=\"center\">
-          <table role=\"presentation\" width=\"600\" cellspacing=\"0\" cellpadding=\"0\" style=\"width:600px;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e5e7eb;\">
+        <td align=\"left\">
+          <table role=\"presentation\" width=\"680\" cellspacing=\"0\" cellpadding=\"0\" style=\"width:680px;margin:0;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e5e7eb;\">
             <tr>
               <td style=\"padding:20px 24px;border-bottom:1px solid #e5e7eb;\">
                 <div style=\"font-size:12px;color:#6b7280;font-weight:600;letter-spacing:0.04em;\">KDIS DESK | {_esc(alert_type)}</div>
@@ -132,8 +132,6 @@ def _render_html(
             </tr>
             <tr>
               <td style=\"padding:20px 24px;\">
-                <div style=\"font-size:13px;color:#6b7280;margin-bottom:10px;\">\ud575\uc2ec \uc694\uc57d</div>
-                <div style=\"background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;font-size:14px;color:#111827;\">{_esc(summary)}</div>
                 <div style=\"margin-top:12px;\">
                   {status_badge}
                   <span style=\"display:inline-block;width:8px;\"></span>
