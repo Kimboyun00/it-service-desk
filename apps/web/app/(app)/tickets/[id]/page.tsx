@@ -783,8 +783,9 @@ export default function TicketDetailPage() {
                         const input = commentFileInputRef.current;
                         if (!input) return;
                         input.value = "";
-                        if ("showPicker" in input) {
-                          (input as HTMLInputElement & { showPicker?: () => void }).showPicker?.();
+                        const showPicker = (input as HTMLInputElement & { showPicker?: () => void }).showPicker;
+                        if (showPicker) {
+                          showPicker.call(input);
                         } else {
                           input.click();
                         }
