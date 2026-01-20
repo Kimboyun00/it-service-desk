@@ -354,14 +354,15 @@ export default function TicketDetailPage() {
     },
   });
 
-  function addCommentFiles(fileList: FileList | null) {
+  function addCommentFiles(fileList: FileList | File[] | null) {
     if (!fileList) return;
+    const files = Array.isArray(fileList) ? fileList : Array.from(fileList);
     setCommentError(null);
     setCommentFiles((prev) => {
       const next = [...prev];
-      for (const file of Array.from(fileList)) {
+      for (const file of files) {
         if (file.size > MAX_COMMENT_FILE_BYTES) {
-          setCommentError("첨부파일은 25MB 이하로만 가능합니다.");
+          setCommentError("????? 25MB ???? ?????.");
           continue;
         }
         next.push(file);

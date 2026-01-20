@@ -147,13 +147,14 @@ export default function NewTicketPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  function addFiles(fileList: FileList | null) {
+  function addFiles(fileList: FileList | File[] | null) {
     if (!fileList) return;
+    const files = Array.isArray(fileList) ? fileList : Array.from(fileList);
     setError(null);
     setIsDirty(true);
     setAttachments((prev) => {
       const next = [...prev];
-      for (const file of Array.from(fileList)) {
+      for (const file of files) {
         if (file.size > MAX_FILE_BYTES) {
           setError("첨부파일은 25MB 이하로만 가능합니다.");
           continue;
