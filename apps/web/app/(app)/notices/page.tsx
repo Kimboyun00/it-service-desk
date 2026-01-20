@@ -41,7 +41,7 @@ export default function NoticesPage() {
       })
       .catch((e: any) => {
         if (!alive) return;
-        setError(e.message ?? "공지사항을 불러오지 못했습니다.");
+        setError(e.message ?? "????? ???? ?????.");
       })
       .finally(() => {
         if (!alive) return;
@@ -57,8 +57,8 @@ export default function NoticesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="공지사항"
-        subtitle="주요 공지 및 운영 안내를 확인하세요"
+        title="????"
+        subtitle="?? ?? ? ?? ??? ?????."
         actions={
           canEdit ? (
             <button
@@ -68,7 +68,7 @@ export default function NoticesPage() {
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
-              등록
+              ??
             </button>
           ) : null
         }
@@ -82,7 +82,7 @@ export default function NoticesPage() {
 
       {loading ? (
         <div className="border border-neutral-200 rounded-xl px-4 py-8 text-center text-sm text-neutral-500 bg-white shadow-sm">
-          공지사항을 불러오는 중입니다...
+          ????? ???? ????...
         </div>
       ) : notices.length === 0 ? (
         <div className="border border-neutral-200 rounded-xl px-4 py-12 text-center bg-white shadow-sm">
@@ -91,7 +91,7 @@ export default function NoticesPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
             </svg>
           </div>
-          <p className="text-sm text-neutral-500">등록된 공지사항이 없습니다</p>
+          <p className="text-sm text-neutral-500">??? ????? ????.</p>
         </div>
       ) : (
         <div className="border border-neutral-200 rounded-xl divide-y divide-neutral-100 bg-white shadow-sm overflow-hidden">

@@ -148,7 +148,7 @@ export default function Sidebar() {
         <Link href="/home" className="pt-1">
           <div className="flex items-center w-full">
             <Image
-              src="/kdis-desk-logo.png"
+              src="/kdis-desk-logo.png?v=20260119"
               alt="KDIS DESK"
               width={390}
               height={139}

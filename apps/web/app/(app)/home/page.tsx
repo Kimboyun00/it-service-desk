@@ -190,29 +190,23 @@ export default function HomePage() {
     const entries = categories.map((c) => [c.id, c.name] as const);
     return Object.fromEntries(entries);
   }, [categories]);
-  const [contactGroups, setContactGroups] = useState<ContactGroup[]>([]);
-  const [contactLoaded, setContactLoaded] = useState(false);
-
   const { data: contactAssignments = [] } = useQuery({
     queryKey: ["contact-assignments"],
     queryFn: () => api<ContactGroup[]>("/contact-assignments"),
     staleTime: 30_000,
   });
 
-  useEffect(() => {
-    if (!categories.length) return;
-    if (contactLoaded) return;
+  const contactGroups = useMemo(() => {
+    if (!categories.length) return [];
     const assignmentMap = new Map<number, ContactPerson[]>();
     for (const item of contactAssignments) {
       assignmentMap.set(item.category_id, item.people);
     }
-    const next = categories.map((c) => ({
+    return categories.map((c) => ({
       category_id: c.id,
       people: assignmentMap.get(c.id) ?? [],
     }));
-    setContactGroups(next);
-    setContactLoaded(true);
-  }, [categories, contactAssignments, contactLoaded]);
+  }, [categories, contactAssignments]);
 
   const [notices, setNotices] = useState<Notice[]>([]);
   const [faqs, setFaqs] = useState<Faq[]>([]);
@@ -496,12 +490,12 @@ export default function HomePage() {
           <HomeCard
             title={
               <div className="flex items-center gap-2">
-                <span>고객담당자</span>
+                <span>카테고리별 담당자</span>
                 {me.role === "admin" ? (
                   <Link
                     href="/admin/manager"
                     className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                    aria-label="고객담당자 수정"
+                    aria-label="카테고리별 담당자 수정"
                   >
                     <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
                       <path

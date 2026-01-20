@@ -523,7 +523,7 @@ export default function AdminDashboard() {
       </div>
 
       <ChartCard
-        title="티켓 추이 분석"
+        title="요청 추이 분석"
         subtitle="시간대별 요청 접수 현황"
         icon="📈"
         action={
@@ -550,13 +550,13 @@ export default function AdminDashboard() {
           <BarChart data={workTypeChartData} maxHeight={150} />
         </ChartCard>
 
-        <ChartCard title="상태별 분포" subtitle="현재 티켓 진행 상태" icon="🧾" className="min-h-[320px]">
+        <ChartCard title="상태별 분포" subtitle="현재 요청 진행 상태" icon="🧾" className="min-h-[320px]">
           <BarChart data={statusChartData} maxHeight={150} />
         </ChartCard>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-        <ChartCard title="카테고리별 분포" subtitle="서비스 유형별 티켓 현황" icon="📊" className="lg:col-span-3 min-h-[320px]">
+        <ChartCard title="카테고리별 분포" subtitle="서비스 유형별 요청 현황" icon="📊" className="lg:col-span-3 min-h-[320px]">
           <BarChart data={categoryChartData} formatLabel={formatCategoryLabel} maxHeight={150} />
         </ChartCard>
 

@@ -5,6 +5,7 @@ from sqlalchemy import select, desc
 from ..db import get_session
 from ..models.knowledge_item import KnowledgeItem
 from ..models.user import User
+from ..models.attachment import Attachment
 from ..core.current_user import get_current_user
 from ..schemas.notice import NoticeCreateIn, NoticeUpdateIn, NoticeOut
 from pathlib import Path
@@ -24,6 +25,16 @@ def require_staff(user: User) -> None:
 @router.get("", response_model=list[NoticeOut])
 def list_notices(session: Session = Depends(get_session)):
     stmt = select(KnowledgeItem).where(KnowledgeItem.kind == "notice").order_by(desc(KnowledgeItem.id))
+    notices = list(session.scalars(stmt).all())
+    notice_ids = [n.id for n in notices]
+
+    attachments_by_notice: dict[int, list[Attachment]] = {}
+    if notice_ids:
+        for att in session.scalars(
+            select(Attachment).where(Attachment.notice_id.in_(notice_ids)).order_by(Attachment.id.asc())
+        ).all():
+            attachments_by_notice.setdefault(att.notice_id, []).append(att)
+
     return [
         {
             "id": n.id,
@@ -32,8 +43,9 @@ def list_notices(session: Session = Depends(get_session)):
             "author_emp_no": n.author_emp_no,
             "created_at": n.created_at,
             "updated_at": n.updated_at,
+            "attachments": attachments_by_notice.get(n.id, []),
         }
-        for n in session.scalars(stmt).all()
+        for n in notices
     ]
 
 
@@ -42,6 +54,9 @@ def get_notice(notice_id: int, session: Session = Depends(get_session)):
     notice = session.get(KnowledgeItem, notice_id)
     if not notice or notice.kind != "notice":
         raise HTTPException(status_code=404, detail="Not found")
+    attachments = list(
+        session.scalars(select(Attachment).where(Attachment.notice_id == notice_id).order_by(Attachment.id.asc())).all()
+    )
     return {
         "id": notice.id,
         "title": notice.title,
@@ -49,6 +64,7 @@ def get_notice(notice_id: int, session: Session = Depends(get_session)):
         "author_emp_no": notice.author_emp_no,
         "created_at": notice.created_at,
         "updated_at": notice.updated_at,
+        "attachments": attachments,
     }
 
 
@@ -73,6 +89,7 @@ def create_notice(
         "author_emp_no": notice.author_emp_no,
         "created_at": notice.created_at,
         "updated_at": notice.updated_at,
+        "attachments": [],
     }
 
 
@@ -104,6 +121,9 @@ def update_notice(
         "author_emp_no": notice.author_emp_no,
         "created_at": notice.created_at,
         "updated_at": notice.updated_at,
+        "attachments": list(
+            session.scalars(select(Attachment).where(Attachment.notice_id == notice_id).order_by(Attachment.id.asc())).all()
+        ),
     }
 
 
@@ -122,6 +142,11 @@ def delete_notice(
         key = extract_key_from_url(src)
         if key:
             keys.add(key)
+    attachments = list(
+        session.scalars(select(Attachment).where(Attachment.notice_id == notice_id)).all()
+    )
+    for att in attachments:
+        keys.add(att.key)
     if keys:
         if settings.STORAGE_BACKEND == "object":
             for key in keys:
@@ -132,6 +157,9 @@ def delete_notice(
                 path = upload_root / key
                 if path.exists():
                     path.unlink()
+    if attachments:
+        for att in attachments:
+            session.delete(att)
     session.delete(notice)
     session.commit()
     return {"ok": True}

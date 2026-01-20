@@ -388,7 +388,7 @@ export default function AdminTicketsPage() {
   return (
     <div className="p-5 space-y-5">
       <PageHeader
-        title="요청관리"
+        title="요청 관리"
         meta={
           <span>
             미배정 <span className="text-emerald-700 font-semibold">{unassignedTickets.length}</span>건 / 내 담당{" "}

@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from .attachment import AttachmentOut
 from datetime import datetime
 
 
@@ -19,6 +20,7 @@ class NoticeOut(BaseModel):
     author_emp_no: str
     created_at: datetime
     updated_at: datetime
+    attachments: list[AttachmentOut] = []
 
     class Config:
         from_attributes = True

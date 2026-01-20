@@ -16,6 +16,7 @@ class AttachmentOut(BaseModel):
     size: int
     ticket_id: Optional[int] = None
     comment_id: Optional[int] = None
+    notice_id: Optional[int] = None
     uploaded_emp_no: str
     created_at: datetime | None = None
 
