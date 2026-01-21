@@ -169,7 +169,7 @@ function Badge({ label, cls }: { label: string; cls: string }) {
 
 function FieldRow({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-12">
+    <div className="grid grid-cols-12 border-b border-slate-200">
       <div className="col-span-4 bg-gray-50 text-sm text-gray-600 px-3 py-2 border-r">{label}</div>
       <div className="col-span-8 text-sm px-3 py-2">{value ?? "-"}</div>
     </div>
