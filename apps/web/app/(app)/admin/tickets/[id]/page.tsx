@@ -428,7 +428,8 @@ export default function AdminTicketDetailPage() {
   const selectedAttachments = data.attachments.filter((a) => a.comment_id === openCommentId);
 
   return (
-    <div className="p-6 space-y-4">
+    <>
+      <div className="p-6 space-y-4">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold">{t.title}</h1>
@@ -953,6 +954,6 @@ export default function AdminTicketDetailPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
