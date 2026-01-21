@@ -448,6 +448,7 @@ export default function TicketDetailPage() {
               <FieldRow label="프로젝트" value={t.project_name ?? "-"} />
               <FieldRow label="생성일" value={formatDate(t.created_at)} />
               <FieldRow label="최근 업데이트" value={formatDate(t.updated_at || t.created_at)} />
+              <FieldRow label="" value="" />
             </div>
           </div>
         </div>
@@ -560,113 +561,116 @@ export default function TicketDetailPage() {
             </div>
           )}
 
-          <div className="border rounded bg-white">
-            <div className="px-4 py-2 border-b text-sm font-semibold">처리 이력</div>
-            {data.events.length === 0 ? (
-              <div className="p-4 text-sm text-gray-500">처리 이력이 없습니다.</div>
-            ) : (
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50">
-                  <tr className="border-b">
-                    <th className="text-center p-2 w-16">No</th>
-                    <th className="text-center p-2 w-44">시각</th>
-                    <th className="text-center p-2 w-28">유형</th>
-                    <th className="text-center p-2">내용</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.events.map((e, idx) => {
-                    const editNote = e.type === "requester_updated" ? parseEditNote(e.note) : null;
-                    const summary = editNote?.summary ?? e.note ?? "-";
-                    const isExpandable = Boolean(editNote?.before);
-                    const isOpen = openEventId === e.id;
-                    const before = editNote?.before ?? {};
-                    const rowNo = data.events.length - idx;
-                    return (
-                      <Fragment key={e.id}>
-                        <tr
-                          className={`border-b ${isExpandable ? "cursor-pointer hover:bg-gray-50" : ""}`}
-                          onClick={() => {
-                            if (!isExpandable) return;
-                            setOpenEventId(isOpen ? null : e.id);
-                          }}
-                        >
-                          <td className="p-2 text-center">{rowNo}</td>
-                          <td className="p-2 text-center text-gray-600">{formatDate(e.created_at)}</td>
-                          <td className="p-2 text-center">{eventLabel(e.type)}</td>
-                          <td className="p-2 text-center text-gray-700">{summary}</td>
-                        </tr>
-                        {isExpandable && isOpen && (
-                          <tr className="border-b bg-gray-50/50">
-                            <td className="p-3" colSpan={4}>
-                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                <div className="border rounded bg-white">
-                                  <div className="px-3 py-2 text-xs font-semibold border-b">수정 전 정보</div>
-                                  <div className="divide-y text-xs">
-                                    <div className="grid grid-cols-12 border-b">
-                                      <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                        제목
-                                      </div>
-                                      <div className="col-span-9 px-2 py-2">{before.title ?? "-"}</div>
-                                    </div>
-                                    <div className="grid grid-cols-12 border-b">
-                                      <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                        제목
-                                      </div>
-                                      <div className="col-span-9 px-2 py-2">
-                                        {priorityMeta(before.priority ?? "medium").label}
-                                      </div>
-                                    </div>
-                                    <div className="grid grid-cols-12 border-b">
-                                      <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                        제목
-                                      </div>
-                                      <div className="col-span-9 px-2 py-2">
-                                        {categoryLabel(before.category_id ?? null, categoryMap)}
-                                      </div>
-                                    </div>
-                                    <div className="grid grid-cols-12 border-b">
-                                      <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                        제목
-                                      </div>
-                                      <div className="col-span-9 px-2 py-2">{workTypeLabel(before.work_type)}</div>
-                                    </div>
-                                    <div className="grid grid-cols-12 border-b">
-                                      <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                        제목
-                                      </div>
-                                      <div className="col-span-9 px-2 py-2">{before.project_name ?? "-"}</div>
-                                    </div>
-                                    <div className="grid grid-cols-12 border-b">
-                                      <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                        제목
-                                      </div>
-                                      <div className="col-span-9 px-2 py-2">{formatDate(before.created_at)}</div>
-                                    </div>
-                                    <div className="grid grid-cols-12">
-                                      <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
-                                        제목
-                                      </div>
-                                      <div className="col-span-9 px-2 py-2">{formatDate(before.updated_at)}</div>
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="border rounded bg-white">
-                                  <div className="px-3 py-2 text-xs font-semibold border-b">이전 요청 상세</div>
-                                  <div className="p-3 text-sm">
-                                    <TiptapViewer value={before.description ?? { type: "doc", content: [] }} />
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4">
+            <div className="border rounded bg-white">
+              <div className="px-4 py-2 border-b text-sm font-semibold">처리 이력</div>
+              {data.events.length === 0 ? (
+                <div className="p-4 text-sm text-gray-500">처리 이력이 없습니다.</div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50">
+                    <tr className="border-b">
+                      <th className="text-center p-2 w-16">No</th>
+                      <th className="text-center p-2 w-44">시각</th>
+                      <th className="text-center p-2 w-28">유형</th>
+                      <th className="text-center p-2">내용</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.events.map((e, idx) => {
+                      const editNote = e.type === "requester_updated" ? parseEditNote(e.note) : null;
+                      const summary = editNote?.summary ?? e.note ?? "-";
+                      const isExpandable = Boolean(editNote?.before);
+                      const isOpen = openEventId === e.id;
+                      const before = editNote?.before ?? {};
+                      const rowNo = data.events.length - idx;
+                      return (
+                        <Fragment key={e.id}>
+                          <tr
+                            className={`border-b ${isExpandable ? "cursor-pointer hover:bg-gray-50" : ""}`}
+                            onClick={() => {
+                              if (!isExpandable) return;
+                              setOpenEventId(isOpen ? null : e.id);
+                            }}
+                          >
+                            <td className="p-2 text-center">{rowNo}</td>
+                            <td className="p-2 text-center text-gray-600">{formatDate(e.created_at)}</td>
+                            <td className="p-2 text-center">{eventLabel(e.type)}</td>
+                            <td className="p-2 text-center text-gray-700">{summary}</td>
                           </tr>
-                        )}
-                      </Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
+                          {isExpandable && isOpen && (
+                            <tr className="border-b bg-gray-50/50">
+                              <td className="p-3" colSpan={4}>
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                  <div className="border rounded bg-white">
+                                    <div className="px-3 py-2 text-xs font-semibold border-b">수정 전 정보</div>
+                                    <div className="divide-y text-xs">
+                                      <div className="grid grid-cols-12 border-b">
+                                        <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
+                                          제목
+                                        </div>
+                                        <div className="col-span-9 px-2 py-2">{before.title ?? "-"}</div>
+                                      </div>
+                                      <div className="grid grid-cols-12 border-b">
+                                        <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
+                                          제목
+                                        </div>
+                                        <div className="col-span-9 px-2 py-2">
+                                          {priorityMeta(before.priority ?? "medium").label}
+                                        </div>
+                                      </div>
+                                      <div className="grid grid-cols-12 border-b">
+                                        <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
+                                          제목
+                                        </div>
+                                        <div className="col-span-9 px-2 py-2">
+                                          {categoryLabel(before.category_id ?? null, categoryMap)}
+                                        </div>
+                                      </div>
+                                      <div className="grid grid-cols-12 border-b">
+                                        <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
+                                          제목
+                                        </div>
+                                        <div className="col-span-9 px-2 py-2">{workTypeLabel(before.work_type)}</div>
+                                      </div>
+                                      <div className="grid grid-cols-12 border-b">
+                                        <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
+                                          제목
+                                        </div>
+                                        <div className="col-span-9 px-2 py-2">{before.project_name ?? "-"}</div>
+                                      </div>
+                                      <div className="grid grid-cols-12 border-b">
+                                        <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
+                                          제목
+                                        </div>
+                                        <div className="col-span-9 px-2 py-2">{formatDate(before.created_at)}</div>
+                                      </div>
+                                      <div className="grid grid-cols-12">
+                                        <div className="col-span-3 px-2 py-2 text-gray-600 bg-gray-50 border-r">
+                                          제목
+                                        </div>
+                                        <div className="col-span-9 px-2 py-2">{formatDate(before.updated_at)}</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="border rounded bg-white">
+                                    <div className="px-3 py-2 text-xs font-semibold border-b">이전 요청 상세</div>
+                                    <div className="p-3 text-sm">
+                                      <TiptapViewer value={before.description ?? { type: "doc", content: [] }} />
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            <div />
           </div>
     </div>
 
