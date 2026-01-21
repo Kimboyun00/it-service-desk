@@ -145,18 +145,14 @@ export default function Sidebar() {
   return (
     <aside className="relative lg:fixed lg:inset-y-0 lg:left-0 w-full lg:w-72 bg-white text-neutral-900 lg:border-r border-neutral-200 z-20">
       <div className="p-3 space-y-10 flex flex-col h-full">
-        <Link href="/home" className="pt-1">
-          <div className="flex items-center w-full">
-            IT Desk
-            {/* <Image
-              src="/kdis-desk-logo.png"
-              alt="KDIS DESK"
-              width={390}
-              height={139}
-              priority
-              unoptimized
-              className="w-[90%] max-w-none h-auto ml-3"
-            /> */}
+        <Link href="/home" className="pt-1 block no-underline">
+          <div className="flex items-center w-full px-4">
+            <h1 
+              className="text-3xl font-black text-black uppercase tracking-tighter"
+              style={{ WebkitTextStroke: '1.5px black' }}
+            >
+              IT DESK
+            </h1>
           </div>
         </Link>
 

@@ -199,7 +199,9 @@ function eventLabel(type: string) {
     work_type_changed: "작업 구분 변경",
   };
   return map[type] ?? type;
-}\n\nfunction parseEditNote(note?: string | null): { summary: string; before?: any } | null {
+}
+
+function parseEditNote(note?: string | null): { summary: string; before?: any } | null {
   if (!note) return null;
   try {
     const parsed = JSON.parse(note);

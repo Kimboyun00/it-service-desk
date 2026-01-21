@@ -74,7 +74,7 @@ function LoginForm() {
       <div className="w-full max-w-3xl">
         <div className="flex justify-center pb-6">
           <Image
-            src="/kdis-desk-logo.png"
+            src="/kdi-school-logo.png"
             alt="KDIS DESK"
             width={999}
             height={251}
