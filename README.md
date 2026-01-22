@@ -1,173 +1,140 @@
 # IT Service Desk
 
-학교 전산팀을 위한 헬프데스크 / 티켓 관리 시스템 (Backend 중심 PoC)
-
-학생·교직원은 IT 이슈를 티켓으로 접수하고,
-전산팀(Agent/Admin)은 티켓을 관리·처리·이력 추적할 수 있는 시스템입니다.
+대학/공공기관 전산팀용 티켓 관리 시스템입니다.  
+요청 접수, 처리/배정, 댓글, 첨부파일, 알림(메일/앱)을 중심으로 구성되어 있습니다.
 
 ---
 
 ## Tech Stack
 
 ### Backend
+- FastAPI
+- SQLAlchemy 2.x
+- Alembic
+- PostgreSQL
 
-* FastAPI
-* SQLAlchemy 2.x
-* Alembic
-* PostgreSQL
+### Frontend
+- Next.js 16
+- React 19
+- Tailwind CSS
 
 ### Infra / DevOps
-
-* Docker
-* Docker Compose
-* NCP Object Storage (S3-compatible, Presigned URL)
-
-### Auth
-
-* JWT 기반 인증
-* Role 기반 접근 제어 (RBAC)
+- Docker / Docker Compose
+- NCP Object Storage (S3 호환, Presigned URL)
+- SMTP (내부 SMTP, port 25)
 
 ---
 
-## User Roles
-
-Role | 설명
-requester | 학생 / 교직원 (티켓 생성, 외부 댓글·첨부, 본인 티켓 조회)
-agent | 전산팀 담당자 (티켓 처리, 내부 댓글·첨부)
-admin | 전산팀 관리자 (agent 권한 포함)
-
----
-
-## Project Structure
+## 프로젝트 구조
 
 ```
 .
 ├─ infra/
 │  ├─ docker-compose.yml
-│  └─ .env
-│
+│  ├─ .env
+│  └─ .env.example
 ├─ apps/
 │  ├─ api/
 │  │  ├─ app/
 │  │  │  ├─ core/
 │  │  │  ├─ models/
 │  │  │  ├─ routers/
-│  │  │  └─ schemas/
+│  │  │  └─ services/
 │  │  ├─ alembic/
-│  │  ├─ Dockerfile
-│  │  └─ alembic.ini
-│  │
-│  └─ web/        (추후 프론트엔드)
-│
-├─ docs/
-│  ├─ api/
-│  └─ adr/
-│
+│  │  ├─ alembic.ini
+│  │  └─ Dockerfile
+│  └─ web/
+│     ├─ app/
+│     ├─ components/
+│     └─ public/
 └─ README.md
 ```
 
 ---
 
-## Run Locally (Backend)
+## 환경 변수 설정
 
-### 1. 환경변수 준비
+### 1) infra/.env
+Docker Compose 실행 시 사용됩니다.  
+템플릿: `infra/.env.example`
 
-다음 파일을 생성하세요.
+필수 항목 예시:
+- `NEXT_PUBLIC_API_BASE_URL` : 웹이 호출할 API 기본 URL  
+  예) `http://localhost:8000`
+- `DATABASE_URL` : API DB 연결 문자열
+- `STORAGE_BACKEND` : `local` 또는 `object`
+- `OBJECT_STORAGE_*` : Object Storage 사용 시 필요
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM`
+- `APP_BASE_URL` : 메일/링크에 사용할 웹 주소
 
-* infra/.env
-* apps/api/.env
+### 2) apps/api/.env
+API 런타임에서 사용됩니다.  
+템플릿: `apps/api/.env.example`
 
-각 파일은 .env.example 파일을 참고해 작성합니다.
+필수 항목 예시:
+- `DATABASE_URL`
+- `JWT_SECRET`, `JWT_EXPIRES_MIN`
+- `CORS_ORIGINS`
+- `STORAGE_BACKEND` / `LOCAL_UPLOAD_ROOT` / `OBJECT_STORAGE_*`
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM`, `APP_BASE_URL`
 
 ---
 
-### 2. Docker Compose 실행
+## 로컬 실행 (Docker Compose)
 
 ```
 cd infra
 docker compose up --build
 ```
 
-실행 후 접속 주소:
-
-* API 서버: [http://localhost:8000](http://localhost:8000)
-* Swagger 문서: [http://localhost:8000/docs](http://localhost:8000/docs)
+접속 주소:
+- Web: http://localhost:3000
+- API: http://localhost:8000
+- Swagger: http://localhost:8000/docs
 
 ---
 
-## Quick API Test (PowerShell)
-
-### 로그인
+## 마이그레이션 (Alembic)
 
 ```
-Invoke-RestMethod -Uri http://localhost:8000/auth/login `
-  -Method POST `
-  -ContentType "application/json" `
-  -Body '{"email":"test@kdischool.ac.kr","password":"kdi3299!@"}'
-```
-
-토큰 저장:
-
-```
-$token = $login.access_token
-$hUser = @{ Authorization = "Bearer $token" }
+cd infra
+docker compose exec api alembic upgrade head
 ```
 
 ---
 
-### 내 정보 조회
+## 첨부파일 업로드 구조
 
+1. API에서 Presigned PUT URL 발급
+2. 클라이언트가 Object Storage에 직접 업로드
+3. 업로드 완료 메타 정보를 API에 등록
+4. 다운로드 시 Presigned GET URL 사용
+
+`STORAGE_BACKEND=local`일 경우 `/data/uploads`에 저장됩니다.
+
+---
+
+## 사용자 동기화 (옵션)
+
+MIS DB에서 사용자 데이터를 동기화하는 기능이 있습니다.  
+관련 환경변수는 `apps/api/.env.example`에서 확인하세요.
+
+수동 동기화:
 ```
-Invoke-RestMethod -Uri http://localhost:8000/me `
-  -Method GET `
-  -Headers $hUser
+cd infra
+docker compose exec api python -c "from app.core.user_sync import sync_users_once; sync_users_once()"
 ```
 
 ---
 
-### 티켓 생성
+## 운영 팁
 
-```
-Invoke-RestMethod -Uri http://localhost:8000/tickets `
-  -Method POST `
-  -Headers $hUser `
-  -ContentType "application/json" `
-  -Body '{
-    "title":"와이파이 불안정",
-    "description":"기숙사 3층에서 연결이 자주 끊깁니다.",
-    "priority":"high",
-    "category":"network"
-  }'
-```
-
----
-
-## File Upload Flow (Presigned URL)
-
-1. API에서 presigned PUT URL 발급
-2. 클라이언트가 Object Storage로 직접 업로드
-3. 업로드 완료 후 메타데이터를 API에 등록
-4. 다운로드 시 presigned GET URL 사용
-
-대용량 파일도 서버 부하 없이 처리 가능합니다.
-
----
-
-## Development Notes
-
-* 개발 편의를 위해 서버 시작 시 seed 계정이 자동 생성됩니다.
-* 운영 환경에서는 다음을 권장합니다.
-
-  * Alembic migration 기반 스키마 관리
-  * seed 로직 분리
-  * Object Storage key 정책 고정
-  * JWT 만료/회전 정책 적용
-  * CORS 제한 강화
+- Object Storage를 쓰는 경우, 자격 증명 경로를 컨테이너에 마운트합니다.  
+  Compose에서 `AWS_SHARED_CREDENTIALS_DIR` 환경 변수를 사용합니다.
+- SMTP는 내부망 전용 설정이므로 운영 환경에서 실제 발송 테스트가 필요합니다.
 
 ---
 
 ## License
 
 Internal PoC / Educational Use
-
----
