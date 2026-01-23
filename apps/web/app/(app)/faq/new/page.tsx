@@ -20,9 +20,6 @@ type TicketCategory = {
 
 const UNSAVED_MESSAGE = "이 페이지를 떠나시겠습니까?\n변경사항이 저장되지 않을 수 있습니다.";
 
-function isConflict(err: any) {
-  return typeof err?.message === "string" && err.message.includes("409");
-}
 
 export default function NewFaqPage() {
   const me = useMe();
@@ -31,7 +28,6 @@ export default function NewFaqPage() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<TiptapDoc>(EMPTY_DOC);
   const [categoryId, setCategoryId] = useState<string>("none");
-  const [newCategory, setNewCategory] = useState("");
   const [categories, setCategories] = useState<TicketCategory[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -53,28 +49,6 @@ export default function NewFaqPage() {
       });
   }, [canEdit, router]);
 
-  const resolveCategoryId = async () => {
-    const trimmed = newCategory.trim();
-    if (trimmed) {
-      try {
-        const created = await api<TicketCategory>("/ticket-categories", {
-          method: "POST",
-          body: { code: trimmed, name: trimmed, description: null },
-        });
-        return created.id;
-      } catch (e: any) {
-        if (isConflict(e)) {
-          const fresh = await api<TicketCategory[]>("/ticket-categories");
-          setCategories(fresh);
-          const found = fresh.find((c) => c.code === trimmed || c.name === trimmed);
-          return found?.id ?? null;
-        }
-        throw e;
-      }
-    }
-    if (categoryId !== "none") return Number(categoryId);
-    return null;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,7 +62,7 @@ export default function NewFaqPage() {
 
     setSaving(true);
     try {
-      const resolvedCategoryId = await resolveCategoryId();
+      const resolvedCategoryId = categoryId !== "none" ? Number(categoryId) : null;
       await api("/faqs", {
         method: "POST",
         body: {
@@ -100,7 +74,7 @@ export default function NewFaqPage() {
       setIsDirty(false);
       router.replace("/faq");
     } catch (e: any) {
-      setErr(e.message ?? "FAQ 등록에 실패했습니다.");
+      setErr(e.message ??? "FAQ 등록에 실패했습니다.");
     } finally {
       setSaving(false);
     }
@@ -141,37 +115,23 @@ export default function NewFaqPage() {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-sm text-slate-700">카테고리 선택</label>
-            <select
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
-              value={categoryId}
-              onChange={(e) => {
-                setCategoryId(e.target.value);
-                setIsDirty(true);
-              }}
-            >
-              <option value="none">미선택</option>
-              {categories.map((c) => (
-                <option key={c.id} value={String(c.id)}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label className="text-sm text-slate-700">새 카테고리 (선택)</label>
-            <input
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
-              value={newCategory}
-              onChange={(e) => {
-                setNewCategory(e.target.value);
-                setIsDirty(true);
-              }}
-              placeholder="새 카테고리명을 입력"
-            />
-          </div>
+        <div className="space-y-1">
+          <label className="text-sm text-slate-700">카테고리 선택</label>
+          <select
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+            value={categoryId}
+            onChange={(e) => {
+              setCategoryId(e.target.value);
+              setIsDirty(true);
+            }}
+          >
+            <option value="none">미선택</option>
+            {categories.map((c) => (
+              <option key={c.id} value={String(c.id)}>
+                {c.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         {err && <div className="text-sm text-red-600">{err}</div>}

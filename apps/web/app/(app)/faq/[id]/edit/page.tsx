@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
+import PageHeader from "@/components/PageHeader";
 import { useMe } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import { EMPTY_DOC, isEmptyDoc, TiptapDoc } from "@/lib/tiptap";
@@ -27,10 +28,6 @@ type TicketCategory = {
   description?: string | null;
 };
 
-function isConflict(err: any) {
-  return typeof err?.message === "string" && err.message.includes("409");
-}
-
 export default function EditFaqPage() {
   const me = useMe();
   const router = useRouter();
@@ -41,7 +38,6 @@ export default function EditFaqPage() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<TiptapDoc>(EMPTY_DOC);
   const [categoryId, setCategoryId] = useState<string>("none");
-  const [newCategory, setNewCategory] = useState("");
   const [categories, setCategories] = useState<TicketCategory[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -79,29 +75,6 @@ export default function EditFaqPage() {
     };
   }, [canEdit, faqId, router]);
 
-  const resolveCategoryId = async () => {
-    const trimmed = newCategory.trim();
-    if (trimmed) {
-      try {
-        const created = await api<TicketCategory>("/ticket-categories", {
-          method: "POST",
-          body: { code: trimmed, name: trimmed, description: null },
-        });
-        return created.id;
-      } catch (e: any) {
-        if (isConflict(e)) {
-          const fresh = await api<TicketCategory[]>("/ticket-categories");
-          setCategories(fresh);
-          const found = fresh.find((c) => c.code === trimmed || c.name === trimmed);
-          return found?.id ?? null;
-        }
-        throw e;
-      }
-    }
-    if (categoryId !== "none") return Number(categoryId);
-    return null;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErr(null);
@@ -113,7 +86,7 @@ export default function EditFaqPage() {
     if (!confirm("변경을 저장하시겠습니까?")) return;
     setSaving(true);
     try {
-      const resolvedCategoryId = await resolveCategoryId();
+      const resolvedCategoryId = categoryId !== "none" ? Number(categoryId) : null;
       const updated = await api<Faq>(`/faqs/${faqId}`,
         {
           method: "PATCH",
@@ -151,9 +124,9 @@ export default function EditFaqPage() {
   }
 
   return (
-    <div className="p-6 max-w-3xl">
-      <h1 className="text-2xl font-semibold mb-4">FAQ 수정</h1>
-      <form onSubmit={handleSubmit} className="space-y-4 border rounded-lg bg-white p-4 shadow-sm">
+    <div className="p-6 space-y-4">
+      <PageHeader title="FAQ 수정" />
+      <form onSubmit={handleSubmit} className="max-w-3xl space-y-4 border rounded-lg bg-white p-4 shadow-sm">
         <div className="space-y-1">
           <label className="text-sm text-gray-700">질문</label>
           <input
@@ -168,31 +141,20 @@ export default function EditFaqPage() {
           <RichTextEditor value={answer} onChange={setAnswer} onError={setErr} placeholder="답변을 입력하세요." />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <label className="text-sm text-gray-700">카테고리 선택</label>
-            <select
-              className="w-full border rounded px-3 py-2 text-sm"
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-            >
-              <option value="none">미선택</option>
-              {categories.map((c) => (
-                <option key={c.id} value={String(c.id)}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label className="text-sm text-gray-700">새 카테고리 (선택)</label>
-            <input
-              className="w-full border rounded px-3 py-2 text-sm"
-              value={newCategory}
-              onChange={(e) => setNewCategory(e.target.value)}
-              placeholder="새 카테고리명을 입력"
-            />
-          </div>
+        <div className="space-y-1">
+          <label className="text-sm text-gray-700">카테고리 선택</label>
+          <select
+            className="w-full border rounded px-3 py-2 text-sm"
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+          >
+            <option value="none">미선택</option>
+            {categories.map((c) => (
+              <option key={c.id} value={String(c.id)}>
+                {c.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         {err && <div className="text-sm text-red-600">{err}</div>}
