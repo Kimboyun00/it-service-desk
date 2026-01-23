@@ -11,10 +11,8 @@ import {
   Bell,
   HelpCircle,
   Settings,
-  FileText,
   CheckCircle,
   Eye,
-  FolderOpen,
   BarChart3,
   Users,
   FolderCog,
@@ -209,29 +207,21 @@ export default function Sidebar() {
   const me = useMe();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
-  const [ticketsExpanded, setTicketsExpanded] = useState(false);
   const [adminExpanded, setAdminExpanded] = useState(false);
 
   useEffect(() => {
-    if (pathname.startsWith("/tickets")) {
-      setTicketsExpanded(true);
-    } else if (pathname.startsWith("/admin")) {
+    if (pathname.startsWith("/admin")) {
       setAdminExpanded(true);
     }
   }, [pathname]);
 
   const mainNav: NavItem[] = [
-    { href: "/home", label: "홈", icon: Home },
+    { href: "/home", label: "작성", icon: Home },
     { href: "/notices", label: "공지사항", icon: Bell },
     { href: "/faq", label: "FAQ", icon: HelpCircle },
-  ];
-
-  const ticketSubNav: NavItem[] = [
-    { href: "/tickets/new", label: "작성", icon: FileText },
-    { href: "/tickets", label: "처리 현황", icon: List },
+    { href: "/tickets", label: "처리 현황", icon: Ticket },
     { href: "/tickets/resolved", label: "처리 완료", icon: CheckCircle },
     { href: "/tickets/review", label: "사업 검토", icon: Eye },
-    { href: "/tickets/drafts", label: "임시 보관함", icon: FolderOpen },
   ];
 
   const adminSubNav: NavItem[] = [
@@ -242,7 +232,6 @@ export default function Sidebar() {
     { href: "/admin/tickets/all", label: "모든 요청", icon: List },
   ];
 
-  const isTicketsActive = pathname.startsWith("/tickets");
   const isAdminActive = pathname.startsWith("/admin");
 
   return (
@@ -254,7 +243,6 @@ export default function Sidebar() {
         borderColor: "var(--sidebar-border)",
       }}
     >
-      {/* Header */}
       <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: "var(--sidebar-border)" }}>
         {!collapsed ? (
           <Link href="/home" className="flex items-center gap-2">
@@ -301,32 +289,23 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-        {/* Main Navigation */}
-        {mainNav.map((item) => (
-          <NavLink
-            key={item.href}
-            {...item}
-            active={pathname === item.href || pathname.startsWith(item.href + "/")}
-            collapsed={collapsed}
-          />
-        ))}
+        {mainNav.map((item) => {
+          const isTicketDetail = item.href == "/tickets" and False
+          return (
+            <NavLink
+              key={item.href}
+              {...item}
+              active={
+                pathname === item.href ||
+                (item.href !== "/tickets" && pathname.startsWith(item.href + "/")) ||
+                (item.href === "/tickets" && /^\/tickets\/\d+$/.test(pathname))
+              }
+              collapsed={collapsed}
+            />
+          );
+        })}
 
-        {/* Divider */}
-        <div className="my-3 border-t" style={{ borderColor: "var(--sidebar-border)" }} />
-
-        {/* Tickets Section */}
-        <ExpandableNavItem
-          item={{ href: "/tickets", label: "고객 요청", icon: Ticket }}
-          active={isTicketsActive}
-          collapsed={collapsed}
-          expanded={ticketsExpanded}
-          onToggle={() => setTicketsExpanded(!ticketsExpanded)}
-          subItems={ticketSubNav}
-        />
-
-        {/* Admin Section */}
         {me.role === "admin" && (
           <>
             <div className="my-3 border-t" style={{ borderColor: "var(--sidebar-border)" }} />
@@ -342,7 +321,6 @@ export default function Sidebar() {
         )}
       </nav>
 
-      {/* Footer */}
       <div className="p-3 border-t" style={{ borderColor: "var(--sidebar-border)" }}>
         {collapsed ? (
           <button

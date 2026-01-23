@@ -21,13 +21,6 @@ type Faq = {
   updated_at: string;
 };
 
-type TicketCategory = {
-  id: number;
-  code: string;
-  name: string;
-  description?: string | null;
-};
-
 export default function EditFaqPage() {
   const me = useMe();
   const router = useRouter();
@@ -38,7 +31,6 @@ export default function EditFaqPage() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<TiptapDoc>(EMPTY_DOC);
   const [categoryId, setCategoryId] = useState<string>("none");
-  const [categories, setCategories] = useState<TicketCategory[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -52,14 +44,13 @@ export default function EditFaqPage() {
     }
     let alive = true;
     setLoading(true);
-    Promise.all([api<Faq>(`/faqs/${faqId}`), api<TicketCategory[]>("/ticket-categories")])
-      .then(([faqData, categoryData]) => {
+    api<Faq>(`/faqs/${faqId}`)
+      .then((faqData) => {
         if (!alive) return;
         setFaq(faqData);
         setQuestion(faqData.question);
         setAnswer(faqData.answer);
         setCategoryId(faqData.category_id ? String(faqData.category_id) : "none");
-        setCategories(categoryData);
         setErr(null);
       })
       .catch((e: any) => {
@@ -139,22 +130,6 @@ export default function EditFaqPage() {
         <div className="space-y-1">
           <label className="text-sm text-gray-700">답변</label>
           <RichTextEditor value={answer} onChange={setAnswer} onError={setErr} placeholder="답변을 입력하세요." />
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-sm text-gray-700">카테고리 선택</label>
-          <select
-            className="w-full border rounded px-3 py-2 text-sm"
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-          >
-            <option value="none">미선택</option>
-            {categories.map((c) => (
-              <option key={c.id} value={String(c.id)}>
-                {c.name}
-              </option>
-            ))}
-          </select>
         </div>
 
         {err && <div className="text-sm text-red-600">{err}</div>}

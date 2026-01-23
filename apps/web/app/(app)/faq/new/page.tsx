@@ -11,13 +11,6 @@ import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes";
 
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), { ssr: false });
 
-type TicketCategory = {
-  id: number;
-  code: string;
-  name: string;
-  description?: string | null;
-};
-
 const UNSAVED_MESSAGE = "이 페이지를 떠나시겠습니까?\n변경사항이 저장되지 않을 수 있습니다.";
 
 
@@ -27,8 +20,6 @@ export default function NewFaqPage() {
 
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<TiptapDoc>(EMPTY_DOC);
-  const [categoryId, setCategoryId] = useState<string>("none");
-  const [categories, setCategories] = useState<TicketCategory[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -40,13 +31,7 @@ export default function NewFaqPage() {
   useEffect(() => {
     if (!canEdit) {
       router.replace("/faq");
-      return;
     }
-    api<TicketCategory[]>("/ticket-categories")
-      .then(setCategories)
-      .catch(() => {
-        setCategories([]);
-      });
   }, [canEdit, router]);
 
 
@@ -62,7 +47,7 @@ export default function NewFaqPage() {
 
     setSaving(true);
     try {
-      const resolvedCategoryId = categoryId !== "none" ? Number(categoryId) : null;
+      const resolvedCategoryId = null;
       await api("/faqs", {
         method: "POST",
         body: {
@@ -85,7 +70,7 @@ export default function NewFaqPage() {
   return (
     <div className="p-5 space-y-5">
       <PageHeader title="FAQ 등록" />
-      <form onSubmit={handleSubmit} className="space-y-5 border border-slate-200/70 rounded-2xl bg-white p-5 shadow-sm">
+      <form onSubmit={handleSubmit} className="max-w-3xl space-y-4 border rounded-lg bg-white p-4 shadow-sm">
         <div className="space-y-1">
           <div className="flex items-center justify-between">
             <label className="text-sm text-slate-700">질문</label>
@@ -113,25 +98,6 @@ export default function NewFaqPage() {
             onError={setErr}
             placeholder="답변을 입력하세요."
           />
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-sm text-slate-700">카테고리 선택</label>
-          <select
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
-            value={categoryId}
-            onChange={(e) => {
-              setCategoryId(e.target.value);
-              setIsDirty(true);
-            }}
-          >
-            <option value="none">미선택</option>
-            {categories.map((c) => (
-              <option key={c.id} value={String(c.id)}>
-                {c.name}
-              </option>
-            ))}
-          </select>
         </div>
 
         {err && <div className="text-sm text-red-600">{err}</div>}
