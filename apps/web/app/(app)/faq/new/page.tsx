@@ -74,7 +74,7 @@ export default function NewFaqPage() {
       setIsDirty(false);
       router.replace("/faq");
     } catch (e: any) {
-      setErr(e.message ??? "FAQ 등록에 실패했습니다.");
+      setErr(e.message ?? "FAQ 등록에 실패했습니다.");
     } finally {
       setSaving(false);
     }
