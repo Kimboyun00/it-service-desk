@@ -317,7 +317,7 @@ export default function AdminTicketsPage() {
   );
 
   const renderTable = (items: Ticket[], emptyText: string) => (
-    <div className="border border-slate-200/70 rounded-2xl overflow-hidden bg-white shadow-sm">
+    <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       <table className="w-full text-sm text-center">
         <thead className="bg-slate-50">
           <tr>

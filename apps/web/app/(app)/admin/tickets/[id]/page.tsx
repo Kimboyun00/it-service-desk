@@ -462,7 +462,7 @@ export default function AdminTicketDetailPage() {
       </div>
 
       <div className="space-y-4">
-        <div className="border rounded bg-white">
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x">
             <div className="divide-y">
               <FieldRow label="요청자" value={formatUser(t.requester, t.requester_emp_no)} />
@@ -547,7 +547,7 @@ export default function AdminTicketDetailPage() {
 
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4">
           <div className="space-y-4">
-            <div className="border rounded bg-white">
+            <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
               <div className="px-4 py-3 border-b text-sm font-semibold">요청 상세</div>
               <div className="p-4 space-y-4">
                 <section className="space-y-2">
@@ -582,7 +582,7 @@ export default function AdminTicketDetailPage() {
             </div>
           </div>
 
-          <aside className="border rounded bg-white h-fit">
+          <aside className="rounded-xl border border-slate-200 bg-white shadow-sm h-fit">
             <div className="flex items-center justify-between px-4 py-3 border-b">
               <span className="text-sm font-semibold">댓글</span>
               <button
@@ -618,7 +618,7 @@ export default function AdminTicketDetailPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4">
         <div className="space-y-4">
-          <div className="border rounded bg-white">
+          <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
             <div className="px-4 py-3 border-b text-sm font-semibold">상태 변경</div>
             <div className="p-4 space-y-3">
               <select
@@ -653,7 +653,7 @@ export default function AdminTicketDetailPage() {
             </div>
           </div>
 
-          <div className="border rounded bg-white">
+          <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
             <div className="px-4 py-2 border-b text-sm font-semibold">처리 이력</div>
             {data.events.length === 0 ? (
               <div className="p-4 text-sm text-gray-500">처리 이력이 없습니다.</div>
@@ -693,7 +693,7 @@ export default function AdminTicketDetailPage() {
                           <tr className="border-b bg-gray-50/50">
                             <td className="p-3" colSpan={4}>
                               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                <div className="border rounded bg-white">
+                                <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
                                   <div className="px-3 py-2 text-xs font-semibold border-b">수정 전 정보</div>
                                   <div className="divide-y text-xs">
                                     <div className="grid grid-cols-12 border-b">
@@ -730,7 +730,7 @@ export default function AdminTicketDetailPage() {
                                     </div>
                                   </div>
                                 </div>
-                                <div className="border rounded bg-white">
+                                <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
                                   <div className="px-3 py-2 text-xs font-semibold border-b">이전 요청 상세</div>
                                   <div className="p-3 text-sm">
                                     <TiptapViewer value={before.description ?? { type: "doc", content: [] }} />

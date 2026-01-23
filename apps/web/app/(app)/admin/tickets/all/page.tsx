@@ -261,7 +261,7 @@ export default function AdminAllTicketsPage() {
 
       {isLoading && <div className="text-sm text-slate-500">목록을 불러오는 중...</div>}
 
-      <div className="border border-slate-200/70 rounded-2xl overflow-hidden bg-white shadow-sm">
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <table className="w-full text-sm text-center">
           <thead className="bg-slate-50">
             <tr>
