@@ -6,6 +6,8 @@ import { useMe } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import { extractText, TiptapDoc } from "@/lib/tiptap";
 import PageHeader from "@/components/PageHeader";
+import { Card } from "@/components/ui";
+import { Plus, FileText } from "lucide-react";
 
 type Notice = {
   id: number;
@@ -55,19 +57,30 @@ export default function NoticesPage() {
   const excerpt = (text: string) => (text.length > 80 ? `${text.slice(0, 80)}...` : text);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fadeIn">
       <PageHeader
         title="공지사항"
         subtitle="주요 공지 및 운영 안내를 확인하세요."
+        icon="📢"
         actions={
           canEdit ? (
             <button
-              className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-neutral-800 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition-all"
+              style={{
+                background: "linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%)",
+                color: "white",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.boxShadow = "var(--shadow-md)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "var(--shadow-sm)";
+              }}
               onClick={() => router.push("/notices/new")}
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
+              <Plus className="h-4 w-4" />
               등록
             </button>
           ) : null
@@ -75,42 +88,69 @@ export default function NoticesPage() {
       />
 
       {error && (
-        <div className="rounded-lg bg-danger-50 border border-danger-200 px-4 py-3 text-sm text-danger-700">
+        <div
+          className="rounded-lg border px-4 py-3 text-sm"
+          style={{
+            backgroundColor: "var(--color-danger-50)",
+            borderColor: "var(--color-danger-200)",
+            color: "var(--color-danger-700)",
+          }}
+        >
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="border border-neutral-200 rounded-xl px-4 py-8 text-center text-sm text-neutral-500 bg-white shadow-sm">
-          공지사항을 불러오는 중입니다...
-        </div>
-      ) : notices.length === 0 ? (
-        <div className="border border-neutral-200 rounded-xl px-4 py-12 text-center bg-white shadow-sm">
-          <div className="text-neutral-400 mb-2">
-            <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-            </svg>
+        <Card padding="lg">
+          <div className="text-center text-sm" style={{ color: "var(--text-secondary)" }}>
+            공지사항을 불러오는 중입니다...
           </div>
-          <p className="text-sm text-neutral-500">등록된 공지사항이 없습니다.</p>
-        </div>
+        </Card>
+      ) : notices.length === 0 ? (
+        <Card padding="xl">
+          <div className="text-center">
+            <div className="mb-3" style={{ color: "var(--text-tertiary)" }}>
+              <FileText className="mx-auto h-12 w-12" strokeWidth={1.5} />
+            </div>
+            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+              등록된 공지사항이 없습니다.
+            </p>
+          </div>
+        </Card>
       ) : (
-        <div className="border border-neutral-200 rounded-xl divide-y divide-neutral-100 bg-white shadow-sm overflow-hidden">
+        <Card padding="none" className="divide-y overflow-hidden" style={{ borderColor: "var(--border-default)" }}>
           {notices.map((n) => (
             <button
               key={n.id}
-              className="w-full text-left px-5 py-4 space-y-2 hover:bg-neutral-50 transition-colors group"
+              className="w-full text-left px-5 py-4 space-y-2 transition-colors group"
+              style={{
+                borderColor: "var(--border-subtle)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
+              }}
               onClick={() => router.push(`/notices/${n.id}`)}
             >
               <div className="flex items-start justify-between gap-4">
-                <h3 className="text-base font-semibold text-neutral-900 group-hover:text-primary-600 transition-colors line-clamp-1">
+                <h3
+                  className="text-base font-semibold transition-colors line-clamp-1"
+                  style={{ color: "var(--text-primary)" }}
+                >
                   {n.title}
                 </h3>
-                <span className="text-xs text-neutral-500 whitespace-nowrap">{formatDate(n.created_at)}</span>
+                <span className="text-xs whitespace-nowrap" style={{ color: "var(--text-tertiary)" }}>
+                  {formatDate(n.created_at)}
+                </span>
               </div>
-              <p className="text-sm text-neutral-600 line-clamp-2 leading-relaxed">{excerpt(extractText(n.body))}</p>
+              <p className="text-sm line-clamp-2 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                {excerpt(extractText(n.body))}
+              </p>
             </button>
           ))}
-        </div>
+        </Card>
       )}
     </div>
   );

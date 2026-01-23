@@ -7,6 +7,8 @@ import { api } from "@/lib/api";
 import PageHeader from "@/components/PageHeader";
 import Pagination from "@/components/Pagination";
 import ErrorDialog from "@/components/ErrorDialog";
+import { Card, Badge } from "@/components/ui";
+import { Search, X, UserCog } from "lucide-react";
 
 type Role = "requester" | "admin";
 type SortDir = "asc" | "desc";
@@ -23,15 +25,8 @@ type UserRow = {
 };
 
 function RoleBadge({ role }: { role: Role }) {
-  const map: Record<Role, string> = {
-    requester: "bg-gray-100 text-gray-700 border-gray-200",
-    admin: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  };
-  return (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${map[role]}`}>
-      {role}
-    </span>
-  );
+  const variant = role === "admin" ? "success" : "default";
+  return <Badge variant={variant} size="sm">{role}</Badge>;
 }
 
 export default function AdminUsersPage() {
@@ -167,7 +162,16 @@ export default function AdminUsersPage() {
     return (
       <button
         type="button"
-        className={`inline-flex items-center gap-1 ${active ? "text-slate-900" : "text-slate-500"}`}
+        className="inline-flex items-center gap-1 transition-colors"
+        style={{
+          color: active ? "var(--text-primary)" : "var(--text-secondary)",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = "var(--text-primary)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = active ? "var(--text-primary)" : "var(--text-secondary)";
+        }}
         onClick={() => toggleSort(key)}
       >
         <span>{label}</span>
@@ -181,14 +185,24 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="p-5 space-y-5">
+    <div className="space-y-6 animate-fadeIn">
       <PageHeader
         title="사용자 관리"
         subtitle="권한 설정과 기본 정보를 관리합니다."
+        icon="👥"
         actions={
-          <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+              style={{ color: "var(--text-tertiary)" }}
+            />
             <input
-              className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white"
+              className="border rounded-lg pl-10 pr-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 transition-all"
+              style={{
+                borderColor: "var(--border-default)",
+                backgroundColor: "var(--bg-card)",
+                color: "var(--text-primary)",
+              }}
               placeholder="이름/직급/부서/직책/ID 검색"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -199,10 +213,10 @@ export default function AdminUsersPage() {
 
       <ErrorDialog message={error} onClose={() => setError(null)} />
 
-      <div className="border border-slate-200/70 rounded-2xl overflow-hidden bg-white shadow-sm">
+      <Card padding="none" className="overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50">
-            <tr>
+          <thead style={{ backgroundColor: "var(--bg-subtle)" }}>
+            <tr style={{ borderBottom: "1px solid var(--border-default)" }}>
               <th className="text-left p-3 w-28">{renderSortLabel("emp_no", "ID")}</th>
               <th className="text-left p-3 w-28">{renderSortLabel("kor_name", "이름")}</th>
               <th className="text-left p-3 w-28">{renderSortLabel("title", "직급")}</th>
@@ -215,49 +229,83 @@ export default function AdminUsersPage() {
           </thead>
           <tbody>
             {loading && (
-              <tr className="border-t">
-                <td className="p-3 text-slate-500" colSpan={6}>
+              <tr style={{ borderTop: "1px solid var(--border-subtle)" }}>
+                <td className="p-3" style={{ color: "var(--text-secondary)" }} colSpan={6}>
                   사용자 목록을 불러오는 중입니다...
                 </td>
               </tr>
             )}
             {!loading &&
               paged.map((u) => (
-                <tr key={u.emp_no} className="border-t">
-                  <td className="p-3 font-medium text-slate-900">{u.emp_no || "-"}</td>
-                  <td className="p-3 font-medium text-slate-900">{u.kor_name || "-"}</td>
-                  <td className="p-3">{u.title || "-"}</td>
-                  <td className="p-3 text-slate-700">{u.department || "-"}</td>
-                  <td className="p-3 text-slate-700">
-                    <span className="font-semibold text-amber-700">{u.pending}</span>
-                    <span className="text-slate-400"> / </span>
-                    <span className="text-slate-700">{u.total}</span>
+                <tr
+                  key={u.emp_no}
+                  className="transition-colors"
+                  style={{ borderTop: "1px solid var(--border-subtle)" }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "transparent";
+                  }}
+                >
+                  <td className="p-3 font-medium" style={{ color: "var(--text-primary)" }}>
+                    {u.emp_no || "-"}
                   </td>
-                  <td className="p-3 text-slate-400">-</td>
+                  <td className="p-3 font-medium" style={{ color: "var(--text-primary)" }}>
+                    {u.kor_name || "-"}
+                  </td>
+                  <td className="p-3" style={{ color: "var(--text-secondary)" }}>
+                    {u.title || "-"}
+                  </td>
+                  <td className="p-3" style={{ color: "var(--text-secondary)" }}>
+                    {u.department || "-"}
+                  </td>
+                  <td className="p-3" style={{ color: "var(--text-secondary)" }}>
+                    <span className="font-semibold" style={{ color: "var(--color-warning-700)" }}>
+                      {u.pending}
+                    </span>
+                    <span style={{ color: "var(--text-tertiary)" }}> / </span>
+                    <span>{u.total}</span>
+                  </td>
+                  <td className="p-3" style={{ color: "var(--text-tertiary)" }}>
+                    -
+                  </td>
                 </tr>
               ))}
             {!loading && !paged.length && (
-              <tr className="border-t">
-                <td className="p-3 text-slate-500" colSpan={6}>
+              <tr style={{ borderTop: "1px solid var(--border-subtle)" }}>
+                <td className="p-3" style={{ color: "var(--text-secondary)" }} colSpan={6}>
                   검색 결과가 없습니다.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
-      </div>
+      </Card>
 
       <div className="flex items-center justify-between">
-        <div className="text-sm text-slate-600">
-          총 <span className="font-semibold text-slate-900">{sorted.length}</span>명
+        <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
+          총 <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{sorted.length}</span>명
         </div>
         <button
           type="button"
-          className="px-3 py-2 text-sm rounded-lg border border-slate-200 bg-white hover:bg-slate-50"
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-all"
+          style={{
+            borderColor: "var(--border-default)",
+            backgroundColor: "var(--bg-card)",
+            color: "var(--text-primary)",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "var(--bg-card)";
+          }}
           onClick={() => setAdminModalOpen(true)}
           disabled={!canChangeRole}
         >
-          admin
+          <UserCog className="w-4 h-4" />
+          관리자 설정
         </button>
       </div>
 
@@ -266,67 +314,118 @@ export default function AdminUsersPage() {
       {adminModalOpen && (
         <div className="fixed inset-0 z-50">
           <div
-            className="absolute inset-0 bg-black/30"
+            className="absolute inset-0"
+            style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
             onClick={() => setAdminModalOpen(false)}
           />
-          <div className="absolute inset-x-0 top-16 mx-auto w-full max-w-2xl rounded-2xl bg-white shadow-xl border border-slate-200">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+          <div
+            className="absolute inset-x-0 top-16 mx-auto w-full max-w-2xl rounded-2xl shadow-xl border"
+            style={{
+              backgroundColor: "var(--bg-card)",
+              borderColor: "var(--border-default)",
+            }}
+          >
+            <div
+              className="p-4 border-b flex items-center justify-between"
+              style={{ borderColor: "var(--border-subtle)" }}
+            >
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">관리자 지정</h2>
-                <p className="text-sm text-slate-500">관리자 추가/해제 및 현재 관리자 확인</p>
+                <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                  관리자 지정
+                </h2>
+                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                  관리자 추가/해제 및 현재 관리자 확인
+                </p>
               </div>
               <button
                 type="button"
-                className="text-slate-500 hover:text-slate-700"
+                className="transition-colors inline-flex items-center gap-1"
+                style={{ color: "var(--text-secondary)" }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "var(--text-primary)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--text-secondary)";
+                }}
                 onClick={() => setAdminModalOpen(false)}
               >
+                <X className="w-4 h-4" />
                 닫기
               </button>
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <div className="text-xs font-semibold text-slate-500 mb-2">현재 관리자</div>
+                <div className="text-xs font-semibold mb-2" style={{ color: "var(--text-secondary)" }}>
+                  현재 관리자
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   {admins.map((u) => (
                     <div
                       key={u.emp_no}
-                      className="border border-emerald-100 bg-emerald-50 rounded-lg px-3 py-2 text-sm text-emerald-900"
+                      className="border rounded-lg px-3 py-2 text-sm"
+                      style={{
+                        borderColor: "var(--color-success-200)",
+                        backgroundColor: "var(--color-success-50)",
+                        color: "var(--color-success-900)",
+                      }}
                     >
                       {u.kor_name ?? "-"} / {u.title ?? "-"}
                     </div>
                   ))}
                   {!admins.length && (
-                    <div className="text-sm text-slate-500">관리자가 없습니다.</div>
+                    <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                      관리자가 없습니다.
+                    </div>
                   )}
                 </div>
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="text-xs font-semibold text-slate-500">사용자 검색</div>
+                  <div className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
+                    사용자 검색
+                  </div>
                   <input
-                    className="border border-slate-200 rounded-lg px-3 py-2 text-sm flex-1"
+                    className="border rounded-lg px-3 py-2 text-sm flex-1 focus:outline-none focus:ring-2 transition-all"
+                    style={{
+                      borderColor: "var(--border-default)",
+                      backgroundColor: "var(--bg-card)",
+                      color: "var(--text-primary)",
+                    }}
                     placeholder="이름/직급/부서/직책/ID 검색"
                     value={adminSearch}
                     onChange={(e) => setAdminSearch(e.target.value)}
                   />
                 </div>
-                <div className="max-h-80 overflow-auto border border-slate-100 rounded-lg">
+                <div
+                  className="max-h-80 overflow-auto border rounded-lg"
+                  style={{ borderColor: "var(--border-subtle)" }}
+                >
                   {adminCandidates.map((u) => (
                     <div
                       key={u.emp_no}
                       className="flex items-center justify-between px-3 py-2 border-t first:border-t-0 text-sm"
+                      style={{ borderColor: "var(--border-subtle)" }}
                     >
-                      <div className="text-slate-900">
-                        {u.emp_no} · {u.kor_name ?? "-"} / {u.title ?? "-"} /{" "}
-                        {u.department ?? "-"}
+                      <div style={{ color: "var(--text-primary)" }}>
+                        {u.emp_no} · {u.kor_name ?? "-"} / {u.title ?? "-"} / {u.department ?? "-"}
                       </div>
                       <button
                         type="button"
-                        className={`px-3 py-1 rounded-md text-xs border ${
-                          u.role === "admin"
-                            ? "border-red-200 text-red-700 hover:bg-red-50"
-                            : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-                        }`}
+                        className="px-3 py-1 rounded-md text-xs border transition-all"
+                        style={{
+                          borderColor:
+                            u.role === "admin" ? "var(--color-danger-200)" : "var(--color-success-200)",
+                          color: u.role === "admin" ? "var(--color-danger-700)" : "var(--color-success-700)",
+                          backgroundColor: u.role === "admin" ? "var(--color-danger-50)" : "var(--color-success-50)",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor =
+                            u.role === "admin" ? "var(--color-danger-100)" : "var(--color-success-100)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor =
+                            u.role === "admin" ? "var(--color-danger-50)" : "var(--color-success-50)";
+                        }}
                         disabled={savingId === u.emp_no}
                         onClick={() =>
                           handleRoleChange(u.emp_no, u.role === "admin" ? "requester" : "admin")
@@ -337,7 +436,9 @@ export default function AdminUsersPage() {
                     </div>
                   ))}
                   {!adminCandidates.length && (
-                    <div className="px-3 py-4 text-sm text-slate-500">검색 결과가 없습니다.</div>
+                    <div className="px-3 py-4 text-sm" style={{ color: "var(--text-secondary)" }}>
+                      검색 결과가 없습니다.
+                    </div>
                   )}
                 </div>
               </div>

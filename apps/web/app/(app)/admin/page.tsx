@@ -8,6 +8,23 @@ import { api } from "@/lib/api";
 import { useMe } from "@/lib/auth-context";
 import { useTicketCategories } from "@/lib/use-ticket-categories";
 import ErrorDialog from "@/components/ErrorDialog";
+import PageHeader from "@/components/PageHeader";
+import { StatCard } from "@/components/ui";
+import { Card, CardHeader, CardBody } from "@/components/ui";
+import {
+  FileText,
+  CheckCircle2,
+  Clock,
+  Package,
+  TrendingUp,
+  Wrench,
+  ClipboardList,
+  PieChart,
+  Users,
+  Bookmark,
+  FolderOpen,
+  ArrowRight
+} from "lucide-react";
 
 type Ticket = {
   id: number;
@@ -18,50 +35,7 @@ type Ticket = {
   updated_at?: string;
 };
 
-function KPICard({
-  label,
-  value,
-  subtitle,
-  icon,
-  trend,
-  accent = "#2563eb",
-  loading,
-}: {
-  label: string;
-  value: string | number;
-  subtitle?: string;
-  icon: string;
-  trend?: { value: number; label: string };
-  accent?: string;
-  loading?: boolean;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex h-full flex-col lg:col-span-1">
-      <div className="flex items-start justify-between flex-1">
-        <div>
-          <div className="text-sm font-semibold text-slate-900 mb-1">{label}</div>
-          <div className="text-4xl font-bold text-slate-900 mb-2">
-            {loading ? <div className="h-10 w-20 bg-slate-200 rounded animate-pulse" /> : value}
-          </div>
-          {subtitle && <div className="text-xs text-slate-600">{subtitle}</div>}
-          {trend && (
-            <div className="mt-3 flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-800">
-                {trend.value >= 0 ? "↑" : "↓"} {Math.abs(trend.value).toFixed(1)}%
-              </span>
-              <span className="text-xs text-slate-600">{trend.label}</span>
-            </div>
-          )}
-        </div>
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${accent}1A` }}>
-          <span className="text-2xl" style={{ color: accent }}>
-            {icon}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
+// KPICard removed - using StatCard 2.0 from ui library
 
 function ChartCard({
   title,
@@ -73,29 +47,41 @@ function ChartCard({
 }: {
   title: string;
   subtitle?: string;
-  icon?: string;
+  icon?: React.ReactNode;
   action?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
 }) {
   return (
-    <div className={`rounded-2xl border border-slate-200 bg-white p-6 shadow-sm ${className}`}>
+    <Card className={className} padding="lg">
       <div className="mb-6 flex items-start justify-between">
         <div className="flex items-start gap-3">
           {icon && (
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-xl">
+            <div
+              className="flex h-10 w-10 items-center justify-center rounded-lg"
+              style={{
+                backgroundColor: "var(--color-primary-100)",
+                color: "var(--color-primary-700)",
+              }}
+            >
               {icon}
             </div>
           )}
           <div>
-            <h3 className="text-lg font-bold text-slate-900">{title}</h3>
-            {subtitle && <p className="mt-1 text-sm text-slate-600">{subtitle}</p>}
+            <h3 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+              {title}
+            </h3>
+            {subtitle && (
+              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                {subtitle}
+              </p>
+            )}
           </div>
         </div>
         {action}
       </div>
       {children}
-    </div>
+    </Card>
   );
 }
 
@@ -122,15 +108,20 @@ function RadialChart({
       ? `conic-gradient(${segments
           .map((s) => `${s.color} ${s.start.toFixed(2)}% ${s.end.toFixed(2)}%`)
           .join(", ")})`
-      : "conic-gradient(#e5e7eb 0% 100%)";
+      : "conic-gradient(var(--border-default) 0% 100%)";
 
   return (
     <div className="flex flex-wrap items-center gap-6">
       <div className="relative" style={{ width: size, height: size }}>
-        <div className="h-full w-full rounded-full" style={{ background: gradient }} />
+        <div className="h-full w-full rounded-full transition-all" style={{ background: gradient }} />
         <div
-          className="absolute inset-0 m-auto rounded-full bg-white flex items-center justify-center text-sm font-semibold text-slate-800"
-          style={{ width: size - thickness * 2, height: size - thickness * 2 }}
+          className="absolute inset-0 m-auto rounded-full flex items-center justify-center text-sm font-semibold transition-colors"
+          style={{
+            width: size - thickness * 2,
+            height: size - thickness * 2,
+            backgroundColor: "var(--bg-card)",
+            color: "var(--text-primary)",
+          }}
         >
           {total}건
         </div>
@@ -140,9 +131,11 @@ function RadialChart({
           <div key={s.label} className="flex items-center justify-between gap-3 text-sm">
             <div className="flex items-center gap-2">
               <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
-              <span className="text-slate-700">{s.label}</span>
+              <span style={{ color: "var(--text-secondary)" }}>{s.label}</span>
             </div>
-            <span className="font-semibold text-slate-900">{s.value}</span>
+            <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
+              {s.value}
+            </span>
           </div>
         ))}
       </div>
@@ -153,7 +146,7 @@ function RadialChart({
 function AreaChart({
   labels,
   values,
-  color = "#006334",
+  color = "#10b981",
 }: {
   labels: string[];
   values: number[];
@@ -164,8 +157,20 @@ function AreaChart({
   const padding = 24;
   const max = Math.max(1, ...values);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const [gridColor, setGridColor] = useState("var(--border-subtle)");
   const hoverRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const updateGridColor = () => {
+      const computed = getComputedStyle(document.documentElement).getPropertyValue("--border-subtle").trim();
+      setGridColor(computed);
+    };
+    updateGridColor();
+    const observer = new MutationObserver(updateGridColor);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
 
   const points = values.map((v, i) => {
     const x = padding + (i / Math.max(1, values.length - 1)) * (width - padding * 2);
@@ -222,13 +227,13 @@ function AreaChart({
             x2={width - padding}
             y1={height - padding - ratio * (height - padding * 2)}
             y2={height - padding - ratio * (height - padding * 2)}
-            stroke="#e5e7eb"
+            stroke={gridColor}
             strokeWidth="1"
             strokeDasharray="4 4"
           />
         ))}
 
-        <path d={areaPath} fill="url(#areaGradient)" />
+        <path d={areaPath} fill="url(#areaGradient)" className="transition-opacity" />
         <path d={linePath} fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
 
         {points.map((p, i) => (
@@ -237,7 +242,7 @@ function AreaChart({
             cx={p.x}
             cy={p.y}
             r={hoverIdx === i ? 6 : 3}
-            fill="white"
+            style={{ fill: "var(--bg-card)" }}
             stroke={color}
             strokeWidth="3"
             className="transition-all"
@@ -263,18 +268,24 @@ function AreaChart({
 
       {hoverIdx !== null && points[hoverIdx] ? (
         <div
-          className="absolute z-10 -translate-x-1/2 -translate-y-full rounded-lg border border-slate-200 bg-white px-4 py-2 shadow-xl pointer-events-none"
+          className="absolute z-10 -translate-x-1/2 -translate-y-full rounded-lg border px-4 py-2 shadow-xl pointer-events-none transition-colors"
           style={{
             left: `${(points[hoverIdx].x / width) * 100}%`,
             top: `${(points[hoverIdx].y / height) * 100}%`,
+            backgroundColor: "var(--bg-card)",
+            borderColor: "var(--border-default)",
           }}
         >
-          <div className="text-sm font-bold text-slate-900">{values[hoverIdx]}건</div>
-          <div className="text-xs text-slate-600">{labels[hoverIdx]}</div>
+          <div className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
+            {values[hoverIdx]}건
+          </div>
+          <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
+            {labels[hoverIdx]}
+          </div>
         </div>
       ) : null}
 
-      <div className="mt-3 flex justify-between px-2 text-xs text-slate-500">
+      <div className="mt-3 flex justify-between px-2 text-xs" style={{ color: "var(--text-tertiary)" }}>
         <span>{labels[0]}</span>
         <span>{labels[Math.floor(labels.length / 2)]}</span>
         <span>{labels[labels.length - 1]}</span>
@@ -478,51 +489,49 @@ export default function AdminDashboard() {
   }, [data, range]);
 
   return (
-    <div className="space-y-8">
-      <div>
-        <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-1.5 border border-slate-200">
-          <div className="h-2 w-2 rounded-full bg-slate-600 animate-pulse" />
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Admin Dashboard</span>
-        </div>
-        <h1 className="text-4xl font-bold text-slate-900 tracking-tight">관리자 대시보드</h1>
-        <p className="mt-2 text-base text-slate-600">IT 서비스 요청 현황과 통계를 실시간으로 모니터링합니다.</p>
-      </div>
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        eyebrow="Admin Dashboard"
+        title="관리자 대시보드"
+        subtitle="IT 서비스 요청 현황과 통계를 실시간으로 모니터링합니다."
+        icon="📊"
+      />
 
       <ErrorDialog message={errorMessage} onClose={() => setErrorMessage(null)} />
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <KPICard
-          label="금일 신규 접수"
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="금일 신규 접수"
           value={isLoading ? "-" : stats.todayNew}
           subtitle="오늘 들어온 새 요청"
-          icon="📝"
+          icon={<FileText className="w-6 h-6" />}
           trend={{ value: stats.newTrend, label: "전일 대비" }}
-          accent="#2563eb"
+          variant="info"
           loading={isLoading}
         />
-        <KPICard
-          label="금일 처리 완료"
+        <StatCard
+          title="금일 처리 완료"
           value={isLoading ? "-" : stats.todayDone}
           subtitle="오늘 완료된 요청"
-          icon="✅"
+          icon={<CheckCircle2 className="w-6 h-6" />}
           trend={{ value: stats.doneTrend, label: "전일 대비" }}
-          accent="#10b981"
+          variant="success"
           loading={isLoading}
         />
-        <KPICard
-          label="미처리 총 요청"
+        <StatCard
+          title="미처리 총 요청"
           value={isLoading ? "-" : stats.totalPending}
           subtitle="대기 + 진행"
-          icon="⏳"
-          accent="#f59e0b"
+          icon={<Clock className="w-6 h-6" />}
+          variant="warning"
           loading={isLoading}
         />
-        <KPICard
-          label="전체 요청"
+        <StatCard
+          title="전체 요청"
           value={isLoading ? "-" : stats.totalTickets}
           subtitle="누적 요청 건수"
-          icon="📦"
-          accent="#3b82f6"
+          icon={<Package className="w-6 h-6" />}
+          variant="primary"
           loading={isLoading}
         />
       </div>
@@ -530,16 +539,36 @@ export default function AdminDashboard() {
       <ChartCard
         title="요청 추이 분석"
         subtitle="시간대별 요청 접수 현황"
-        icon="📈"
+        icon={<TrendingUp className="w-5 h-5" />}
         action={
-          <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+          <div
+            className="inline-flex rounded-lg border p-1"
+            style={{
+              borderColor: "var(--border-default)",
+              backgroundColor: "var(--bg-subtle)",
+            }}
+          >
             {(["daily", "weekly", "monthly"] as const).map((r) => (
               <button
                 key={r}
                 onClick={() => setRange(r)}
-                className={`rounded-md px-4 py-2 text-sm font-semibold transition-all ${
-                  range === r ? "bg-slate-900 text-white shadow-sm" : "text-slate-700 hover:bg-white hover:text-slate-900"
-                }`}
+                className="rounded-md px-4 py-2 text-sm font-semibold transition-all"
+                style={{
+                  backgroundColor: range === r ? "var(--color-primary-600)" : "transparent",
+                  color: range === r ? "white" : "var(--text-secondary)",
+                }}
+                onMouseEnter={(e) => {
+                  if (range !== r) {
+                    e.currentTarget.style.backgroundColor = "var(--bg-card)";
+                    e.currentTarget.style.color = "var(--text-primary)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (range !== r) {
+                    e.currentTarget.style.backgroundColor = "transparent";
+                    e.currentTarget.style.color = "var(--text-secondary)";
+                  }
+                }}
               >
                 {r === "daily" ? "일별" : r === "weekly" ? "주별" : "월별"}
               </button>
@@ -547,57 +576,88 @@ export default function AdminDashboard() {
           </div>
         }
       >
-        <AreaChart labels={timeSeriesData.labels} values={timeSeriesData.values} color="#006334" />
+        <AreaChart labels={timeSeriesData.labels} values={timeSeriesData.values} color="#10b981" />
       </ChartCard>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <ChartCard title="작업 유형" subtitle="요청 유형별 분류" icon="🧰" className="min-h-[320px]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <ChartCard title="작업 유형" subtitle="요청 유형별 분류" icon={<Wrench className="w-5 h-5" />} className="min-h-[320px]">
           <RadialChart data={workTypeChartData} />
         </ChartCard>
 
-        <ChartCard title="상태별 분포" subtitle="현재 요청 진행 상태" icon="🧾" className="min-h-[320px]">
+        <ChartCard title="상태별 분포" subtitle="현재 요청 진행 상태" icon={<ClipboardList className="w-5 h-5" />} className="min-h-[320px]">
           <RadialChart data={statusChartData} />
         </ChartCard>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-        <ChartCard title="카테고리별 분포" subtitle="서비스 유형별 요청 현황" icon="📊" className="lg:col-span-3 min-h-[320px]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+        <ChartCard title="카테고리별 분포" subtitle="서비스 유형별 요청 현황" icon={<PieChart className="w-5 h-5" />} className="lg:col-span-3 min-h-[320px]">
           <RadialChart data={categoryChartData} />
         </ChartCard>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex h-full flex-col lg:col-span-1">
+        <Card padding="lg" className="flex h-full flex-col lg:col-span-1">
           <div className="mb-1 flex items-center gap-2">
-            <span className="text-xl">⚡</span>
-            <h3 className="text-lg font-bold text-slate-900">빠른 이동</h3>
+            <div
+              className="flex h-8 w-8 items-center justify-center rounded-lg"
+              style={{
+                backgroundColor: "var(--color-accent-100)",
+                color: "var(--color-accent-700)",
+              }}
+            >
+              <ArrowRight className="w-4 h-4" />
+            </div>
+            <h3 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+              빠른 이동
+            </h3>
           </div>
-          <p className="mb-6 text-sm text-slate-600">자주 사용하는 관리자 기능</p>
+          <p className="mb-6 text-sm" style={{ color: "var(--text-secondary)" }}>
+            자주 사용하는 관리자 기능
+          </p>
           <div className="space-y-2">
             {[
-              { title: "사용자 관리", href: "/admin/users", icon: "👥" },
-              { title: "요청 관리", href: "/admin/tickets", icon: "📌" },
-              { title: "모든 요청 관리", href: "/admin/tickets/all", icon: "🗂" },
-            ].map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 transition-all hover:border-slate-300 hover:bg-slate-50"
-              >
-                <span className="text-xl">{item.icon}</span>
-                <span className="flex-1 text-sm font-semibold text-slate-900 group-hover:text-slate-700">
-                  {item.title}
-                </span>
-                <svg
-                  className="h-5 w-5 text-slate-400 transition-all group-hover:translate-x-1 group-hover:text-slate-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              { title: "사용자 관리", href: "/admin/users", icon: Users },
+              { title: "요청 관리", href: "/admin/tickets", icon: Bookmark },
+              { title: "모든 요청 관리", href: "/admin/tickets/all", icon: FolderOpen },
+            ].map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="group flex items-center gap-3 rounded-xl border p-3 transition-all"
+                  style={{
+                    borderColor: "var(--border-default)",
+                    backgroundColor: "var(--bg-card)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "var(--color-primary-500)";
+                    e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "var(--border-default)";
+                    e.currentTarget.style.backgroundColor = "var(--bg-card)";
+                  }}
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-            ))}
+                  <div
+                    className="flex h-8 w-8 items-center justify-center rounded-lg"
+                    style={{
+                      backgroundColor: "var(--color-primary-100)",
+                      color: "var(--color-primary-700)",
+                    }}
+                  >
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <span className="flex-1 text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                    {item.title}
+                  </span>
+                  <ArrowRight
+                    className="h-4 w-4 transition-all group-hover:translate-x-1"
+                    style={{ color: "var(--text-tertiary)" }}
+                  />
+                </Link>
+              );
+            })}
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );
