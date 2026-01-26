@@ -271,6 +271,11 @@ nextjs-portal,
   outline-offset: 2px;
 }
 
+.no-focus-ring:focus-visible {
+  outline: none;
+  outline-offset: 0;
+}
+
 /* === SELECTION === */
 ::selection {
   background-color: var(--color-primary-200);

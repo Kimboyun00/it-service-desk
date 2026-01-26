@@ -529,7 +529,7 @@ export default function HomePage() {
                   <input
                     ref={titleInputRef}
                     type="text"
-                    className="w-full text-2xl font-medium px-6 py-4 rounded-xl border focus:outline-none focus:ring-0 transition-colors bg-transparent"
+                    className="no-focus-ring w-full text-2xl font-medium px-6 py-4 rounded-xl border focus:outline-none focus:ring-0 transition-colors bg-transparent"
                     style={{
                       borderColor: form.title.trim() ? "var(--border-default)" : "var(--border-default)",
                       color: "var(--text-primary)",
