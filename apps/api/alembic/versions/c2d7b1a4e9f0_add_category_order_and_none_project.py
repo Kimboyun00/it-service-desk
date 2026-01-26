@@ -113,9 +113,9 @@ def upgrade() -> None:
             {"old_ids": old_ids, "infra_id": infra_id},
         )
         conn.execute(
-            sa.text("update contact_assignments set category_id = :infra_id where category_id in :old_ids")
+            sa.text("delete from contact_assignments where category_id in :old_ids")
             .bindparams(sa.bindparam("old_ids", expanding=True)),
-            {"old_ids": old_ids, "infra_id": infra_id},
+            {"old_ids": old_ids},
         )
         conn.execute(
             sa.text("delete from ticket_categories where id in :old_ids").bindparams(
