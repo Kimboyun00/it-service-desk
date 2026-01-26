@@ -57,7 +57,6 @@ type StepId =
   | "title"
   | "category"
   | "description"
-  | "attachments"
   | "review";
 
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
@@ -187,7 +186,6 @@ export default function HomePage() {
     "title",
     "category",
     "description",
-    "attachments",
     "review",
   ];
 
@@ -317,8 +315,6 @@ export default function HomePage() {
         return !!form.project_id && form.category_ids.length > 0;
       case "description":
         return !isEmptyDoc(form.description);
-      case "attachments":
-        return true; // Optional
       case "review":
         return true;
       default:
@@ -436,7 +432,7 @@ export default function HomePage() {
               <div className="space-y-8">
                 <div className="space-y-2">
                   <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    1단계 / 6단계
+                    1단계 / 5단계
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
                     어떤 종류의 요청인가요?
@@ -519,7 +515,7 @@ export default function HomePage() {
               <div className="space-y-8">
                 <div className="space-y-2">
                   <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    2단계 / 6단계
+                    2단계 / 5단계
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
                     요청 제목을 입력하세요
@@ -564,7 +560,7 @@ export default function HomePage() {
               <div className="space-y-8">
                 <div className="space-y-2">
                   <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    3단계 / 6단계
+                    3단계 / 5단계
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
                     카테고리를 선택하세요
@@ -696,7 +692,7 @@ export default function HomePage() {
               <div className="space-y-8">
                 <div className="space-y-2">
                   <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    4단계 / 6단계
+                    4단계 / 5단계
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
                     요청 내용을 상세히 작성하세요
@@ -717,115 +713,108 @@ export default function HomePage() {
                     이미지는 드래그/붙여넣기로 추가할 수 있습니다.
                   </p>
                 </div>
-              </div>
-            )}
 
-            {currentStep === "attachments" && (
-              <div className="space-y-8">
-                <div className="space-y-2">
-                  <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    5단계 / 6단계 (선택사항)
-                  </p>
-                  <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
-                    파일을 첨부하시겠습니까?
-                  </h2>
-                  <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
+                <div className="space-y-3">
+                  <div className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
+                    파일 첨부 (선택)
+                  </div>
+                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
                     스크린샷이나 관련 문서를 첨부해주세요 (최대 25MB)
                   </p>
-                </div>
 
-                <input
-                  id="attachment-input"
-                  type="file"
-                  multiple
-                  className="sr-only"
-                  ref={fileInputRef}
-                  onChange={(e) => {
-                    addFiles(e.currentTarget.files);
-                    e.currentTarget.value = "";
-                  }}
-                />
-
-                <div
-                  className="rounded-2xl border-2 border-dashed p-12 transition-all text-center cursor-pointer"
-                  style={{
-                    borderColor: dragActive ? "var(--color-primary-400)" : "var(--border-default)",
-                    backgroundColor: dragActive ? "var(--color-primary-50)" : "var(--bg-card)",
-                  }}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setDragActive(true);
-                  }}
-                  onDragLeave={(e) => {
-                    e.preventDefault();
-                    setDragActive(false);
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    setDragActive(false);
-                    addFiles(e.dataTransfer.files);
-                  }}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Paperclip
-                    className="w-12 h-12 mx-auto mb-4"
-                    style={{ color: "var(--text-tertiary)" }}
+                  <input
+                    id="attachment-input"
+                    type="file"
+                    multiple
+                    className="sr-only"
+                    ref={fileInputRef}
+                    onChange={(e) => {
+                      addFiles(e.currentTarget.files);
+                      e.currentTarget.value = "";
+                    }}
                   />
-                  <p className="text-lg font-medium mb-2" style={{ color: "var(--text-primary)" }}>
-                    파일을 드래그하거나 클릭하여 선택
-                  </p>
-                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                    파일당 최대 25MB
-                  </p>
-                </div>
 
-                {attachments.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
-                      첨부된 파일 ({attachments.length})
+                  <div
+                    className="rounded-2xl border-2 border-dashed p-10 transition-all text-center cursor-pointer"
+                    style={{
+                      borderColor: dragActive ? "var(--color-primary-400)" : "var(--border-default)",
+                      backgroundColor: dragActive ? "var(--color-primary-50)" : "var(--bg-card)",
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDragActive(true);
+                    }}
+                    onDragLeave={(e) => {
+                      e.preventDefault();
+                      setDragActive(false);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDragActive(false);
+                      addFiles(e.dataTransfer.files);
+                    }}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Paperclip
+                      className="w-10 h-10 mx-auto mb-3"
+                      style={{ color: "var(--text-tertiary)" }}
+                    />
+                    <p className="text-base font-medium mb-1" style={{ color: "var(--text-primary)" }}>
+                      파일을 드래그하거나 클릭하여 선택
                     </p>
-                    {attachments.map((file, idx) => (
-                      <div
-                        key={`${file.name}-${idx}`}
-                        className="flex items-center justify-between p-4 rounded-xl border"
-                        style={{
-                          backgroundColor: "var(--bg-card)",
-                          borderColor: "var(--border-default)",
-                        }}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Paperclip className="w-5 h-5" style={{ color: "var(--text-tertiary)" }} />
-                          <div>
-                            <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-                              {file.name}
-                            </p>
-                            <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>
-                              {formatBytes(file.size)}
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeFile(idx);
-                          }}
-                          className="p-2 rounded-lg transition-colors"
-                          style={{ color: "var(--text-tertiary)" }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = "var(--bg-hover)";
-                            e.currentTarget.style.color = "var(--color-danger-600)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = "transparent";
-                            e.currentTarget.style.color = "var(--text-tertiary)";
+                    <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                      파일당 최대 25MB
+                    </p>
+                  </div>
+
+                  {attachments.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+                        첨부된 파일 ({attachments.length})
+                      </p>
+                      {attachments.map((file, idx) => (
+                        <div
+                          key={`${file.name}-${idx}`}
+                          className="flex items-center justify-between p-4 rounded-xl border"
+                          style={{
+                            backgroundColor: "var(--bg-card)",
+                            borderColor: "var(--border-default)",
                           }}
                         >
-                          <X className="w-5 h-5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                          <div className="flex items-center gap-3">
+                            <Paperclip className="w-5 h-5" style={{ color: "var(--text-tertiary)" }} />
+                            <div>
+                              <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                                {file.name}
+                              </p>
+                              <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+                                {formatBytes(file.size)}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeFile(idx);
+                            }}
+                            className="p-2 rounded-lg transition-colors"
+                            style={{ color: "var(--text-tertiary)" }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                              e.currentTarget.style.color = "var(--color-danger-600)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = "transparent";
+                              e.currentTarget.style.color = "var(--text-tertiary)";
+                            }}
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -833,7 +822,7 @@ export default function HomePage() {
               <div className="space-y-8">
                 <div className="space-y-2">
                   <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    6단계 / 6단계
+                    5단계 / 5단계
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
                     입력 내용을 확인하세요
