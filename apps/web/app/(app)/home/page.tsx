@@ -563,10 +563,10 @@ export default function HomePage() {
                     3단계 / 5단계
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
-                    카테고리를 선택하세요
+                    사업/요청카테고리를 선택하세요
                   </h2>
                   <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
-                    요청 유형에 맞는 카테고리를 선택해주세요
+                    요청과 관련된 사업과 유형에 맞는 카테고리를 선택해주세요
                   </p>
                 </div>
 
@@ -575,9 +575,6 @@ export default function HomePage() {
                     <div className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
                       프로젝트 선택
                     </div>
-                    <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                      진행 중인 프로젝트에서 요청할 수 있습니다.
-                    </p>
                   </div>
 
                   <div className="grid grid-cols-1 gap-3">
@@ -695,7 +692,7 @@ export default function HomePage() {
                     4단계 / 5단계
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
-                    요청 내용을 상세히 작성하세요
+                    요청 내용을 작성해주세요
                   </h2>
                   <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
                     문제 상황이나 요청 사항을 자세히 설명해주세요
@@ -918,7 +915,7 @@ export default function HomePage() {
                 </button>
 
                 <p className="text-center text-sm" style={{ color: "var(--text-tertiary)" }}>
-                  Cmd/Ctrl + Enter로 빠르게 제출할 수 있습니다
+                  제출 후에는 수정이 불가능합니다.
                 </p>
               </div>
             )}

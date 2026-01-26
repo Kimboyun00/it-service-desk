@@ -74,7 +74,16 @@ function normalize(res: TicketListResponse): { items: Ticket[]; total?: number }
 function formatDate(v?: string | null) {
   if (!v) return "-";
   const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? "-" : d.toLocaleString();
+  return Number.isNaN(d.getTime())
+    ? "-"
+    : d.toLocaleString("ko-KR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
 }
 
 function statusMeta(status: string): { label: string; variant: any } {
@@ -303,7 +312,7 @@ export default function TicketsPage() {
           </CardHeader>
           <CardBody padding="none">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm whitespace-nowrap">
                 <thead style={{ backgroundColor: "var(--bg-subtle)" }}>
                   <tr style={{ borderBottom: "1px solid var(--border-default)" }}>
                     <th className="text-left px-6 py-3 font-semibold" style={{ color: "var(--text-secondary)" }}>
