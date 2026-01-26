@@ -18,7 +18,7 @@ router = APIRouter(prefix="/ticket-categories", tags=["ticket-categories"])
 
 @router.get("", response_model=list[TicketCategoryOut])
 def list_categories(session: Session = Depends(get_session)):
-    stmt = select(TicketCategory).order_by(TicketCategory.id.asc())
+    stmt = select(TicketCategory).order_by(TicketCategory.sort_order.asc(), TicketCategory.id.asc())
     return list(session.scalars(stmt).all())
 
 
@@ -33,7 +33,7 @@ def create_category(
     exists = session.scalar(select(TicketCategory).where(TicketCategory.code == payload.code))
     if exists:
         raise HTTPException(status_code=409, detail="Category code already exists")
-    cat = TicketCategory(code=payload.code, name=payload.name, description=payload.description)
+    cat = TicketCategory(code=payload.code, name=payload.name, description=payload.description, sort_order=999)
     session.add(cat)
     session.commit()
     session.refresh(cat)

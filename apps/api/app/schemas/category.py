@@ -6,6 +6,7 @@ class TicketCategoryOut(BaseModel):
     code: str
     name: str
     description: str | None = None
+    sort_order: int
 
 
 class TicketCategoryCreateIn(BaseModel):

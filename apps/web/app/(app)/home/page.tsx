@@ -26,7 +26,6 @@ const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), { ss
 type TicketCreateIn = {
   title: string;
   description: TiptapDoc;
-  priority: string;
   category_ids: number[];
   work_type: string | null;
   project_id: number | null;
@@ -35,7 +34,6 @@ type TicketCreateIn = {
 type TicketFormState = {
   title: string;
   description: TiptapDoc;
-  priority: string;
   category_ids: number[];
   work_type: string | null;
   project_id: number | null;
@@ -58,19 +56,12 @@ type StepId =
   | "work_type"
   | "title"
   | "category"
-  | "priority"
   | "description"
   | "attachments"
   | "review";
 
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 
-const priorities = [
-  { value: "low", label: "낮음", description: "시급하지 않은 일반적인 요청", color: "info" },
-  { value: "medium", label: "보통", description: "일반적인 처리 우선순위", color: "primary" },
-  { value: "high", label: "높음", description: "빠른 처리가 필요한 요청", color: "warning" },
-  { value: "urgent", label: "긴급", description: "즉시 처리가 필요한 긴급 요청", color: "danger" },
-];
 
 const workTypeOptions = [
   {
@@ -142,7 +133,6 @@ export default function HomePage() {
   const [form, setForm] = useState<TicketFormState>({
     title: "",
     description: EMPTY_DOC,
-    priority: "medium",
     category_ids: [],
     work_type: null,
     project_id: null,
@@ -174,14 +164,28 @@ export default function HomePage() {
     };
   }, []);
 
-  const activeProjects = useMemo(() => projects.filter(isProjectActive), [projects]);
+  const activeProjects = useMemo(() => {
+    const filtered = projects.filter(isProjectActive);
+    return [...filtered].sort((a, b) => {
+      if (a.name === "없음") return -1;
+      if (b.name === "없음") return 1;
+      return a.name.localeCompare(b.name, "ko");
+    });
+  }, [projects]);
+
+  const sortedCategories = useMemo(() => {
+    return [...categories].sort((a, b) => {
+      const order = (a.sort_order ?? 9999) - (b.sort_order ?? 9999);
+      if (order !== 0) return order;
+      return a.name.localeCompare(b.name, "ko");
+    });
+  }, [categories]);
 
   const steps: StepId[] = [
     "welcome",
     "work_type",
     "title",
     "category",
-    "priority",
     "description",
     "attachments",
     "review",
@@ -272,13 +276,17 @@ export default function HomePage() {
   function handleProjectSelect(selected: Project) {
     setProject(selected);
     setIsDirty(true);
-    setForm((prev) => ({ ...prev, project_id: selected.id }));
+    setForm((prev) => ({
+      ...prev,
+      project_id: selected.id,
+      category_ids: prev.project_id === selected.id ? prev.category_ids : [],
+    }));
   }
 
   function clearProject() {
     setProject(null);
     setIsDirty(true);
-    setForm((prev) => ({ ...prev, project_id: null }));
+    setForm((prev) => ({ ...prev, project_id: null, category_ids: [] }));
   }
 
   function nextStep() {
@@ -307,8 +315,6 @@ export default function HomePage() {
         return form.title.trim().length >= 3;
       case "category":
         return !!form.project_id && form.category_ids.length > 0;
-      case "priority":
-        return !!form.priority;
       case "description":
         return !isEmptyDoc(form.description);
       case "attachments":
@@ -348,7 +354,6 @@ export default function HomePage() {
       form: {
         title: form.title.trim(),
         description: form.description,
-        priority: form.priority,
         category_ids: form.category_ids,
         work_type: form.work_type?.trim() || null,
         project_id: form.project_id ?? null,
@@ -431,7 +436,7 @@ export default function HomePage() {
               <div className="space-y-8">
                 <div className="space-y-2">
                   <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    1단계 / 7단계
+                    1단계 / 6단계
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
                     어떤 종류의 요청인가요?
@@ -514,7 +519,7 @@ export default function HomePage() {
               <div className="space-y-8">
                 <div className="space-y-2">
                   <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    2단계 / 7단계
+                    2단계 / 6단계
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
                     요청 제목을 입력하세요
@@ -528,7 +533,7 @@ export default function HomePage() {
                   <input
                     ref={titleInputRef}
                     type="text"
-                    className="w-full text-2xl font-medium px-4 py-4 border-0 border-b-2 focus:outline-none focus:ring-0 transition-colors bg-transparent"
+                    className="w-full text-2xl font-medium px-6 py-4 border-0 border-b-2 focus:outline-none focus:ring-0 transition-colors bg-transparent"
                     style={{
                       borderColor: form.title.trim() ? "var(--color-primary-500)" : "var(--border-default)",
                       color: "var(--text-primary)",
@@ -559,7 +564,7 @@ export default function HomePage() {
               <div className="space-y-8">
                 <div className="space-y-2">
                   <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    3단계 / 7단계
+                    3단계 / 6단계
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
                     카테고리를 선택하세요
@@ -632,7 +637,7 @@ export default function HomePage() {
                         카테고리 (복수 선택 가능)
                       </div>
                       <div className="grid grid-cols-1 gap-3">
-                        {categories.map((category) => {
+                        {sortedCategories.map((category) => {
                           const isSelected = form.category_ids.includes(category.id);
                           return (
                             <button
@@ -687,72 +692,11 @@ export default function HomePage() {
               </div>
             )}
 
-            {currentStep === "priority" && (
-              <div className="space-y-8">
-                <div className="space-y-2">
-                  <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    4단계 / 7단계
-                  </p>
-                  <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
-                    우선순위를 선택하세요
-                  </h2>
-                  <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
-                    요청의 긴급도를 선택해주세요
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {priorities.map((priority) => {
-                    const isSelected = form.priority === priority.value;
-                    return (
-                      <button
-                        key={priority.value}
-                        onClick={() => {
-                          handleChange("priority", priority.value);
-                          setTimeout(nextStep, 300);
-                        }}
-                        className="group p-6 rounded-2xl border-2 transition-all text-left"
-                        style={{
-                          borderColor: isSelected ? "var(--color-primary-500)" : "var(--border-default)",
-                          backgroundColor: isSelected ? "var(--color-primary-50)" : "var(--bg-card)",
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!isSelected) {
-                            e.currentTarget.style.borderColor = "var(--color-primary-300)";
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isSelected) {
-                            e.currentTarget.style.borderColor = "var(--border-default)";
-                          }
-                        }}
-                      >
-                        {isSelected && (
-                          <div
-                            className="absolute top-4 right-4"
-                            style={{ color: "var(--color-primary-600)" }}
-                          >
-                            <CheckCircle2 className="w-6 h-6" />
-                          </div>
-                        )}
-                        <h3 className="text-xl font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
-                          {priority.label}
-                        </h3>
-                        <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                          {priority.description}
-                        </p>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
             {currentStep === "description" && (
               <div className="space-y-8">
                 <div className="space-y-2">
                   <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    5단계 / 7단계
+                    4단계 / 6단계
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
                     요청 내용을 상세히 작성하세요
@@ -780,7 +724,7 @@ export default function HomePage() {
               <div className="space-y-8">
                 <div className="space-y-2">
                   <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    6단계 / 7단계 (선택사항)
+                    5단계 / 6단계 (선택사항)
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
                     파일을 첨부하시겠습니까?
@@ -889,7 +833,7 @@ export default function HomePage() {
               <div className="space-y-8">
                 <div className="space-y-2">
                   <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    7단계 / 7단계
+                    6단계 / 6단계
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
                     입력 내용을 확인하세요
@@ -938,17 +882,6 @@ export default function HomePage() {
                           .map((id) => categories.find((c) => c.id === id)?.name)
                           .filter(Boolean)
                           .join(", ")}
-                      </p>
-                    </div>
-
-                    <div className="h-px" style={{ backgroundColor: "var(--border-subtle)" }} />
-
-                    <div>
-                      <p className="text-sm font-medium mb-2" style={{ color: "var(--text-tertiary)" }}>
-                        우선순위
-                      </p>
-                      <p className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-                        {priorities.find((p) => p.value === form.priority)?.label}
                       </p>
                     </div>
 

@@ -57,18 +57,17 @@ def seed_users(session: Session) -> None:
 
 
 def seed_ticket_categories(session: Session) -> None:
-    removed_codes = {"security", "device_mgmt"}
+    removed_codes = {"cloud", "network_server", "security", "device_mgmt"}
 
     seeds = [
-        dict(code="dooray", name="두레이", description="두레이"),
-        dict(code="vdi_gabia_daas", name="VDI(Gabia DaaS)", description="VDI(Gabia DaaS)"),
-        dict(code="portal", name="포탈", description="포탈"),
-        dict(code="mis_academic", name="MIS(학사)", description="MIS(학사)"),
-        dict(code="mis_admin", name="MIS(일반행정)", description="MIS(일반행정)"),
-        dict(code="cloud", name="클라우드", description="클라우드"),
-        dict(code="network_server", name="네트워크/서버", description="네트워크/서버"),
-        dict(code="it_service", name="IT서비스", description="IT서비스"),
-        dict(code="etc", name="기타", description="기타"),
+        dict(code="mis_academic", name="MIS(학사)", description="MIS(학사)", sort_order=10),
+        dict(code="mis_admin", name="MIS(일반행정)", description="MIS(일반행정)", sort_order=20),
+        dict(code="portal", name="포탈", description="포탈", sort_order=30),
+        dict(code="dooray", name="두레이", description="두레이", sort_order=40),
+        dict(code="vdi_gabia_daas", name="VDI(Gabia DaaS)", description="VDI(Gabia DaaS)", sort_order=50),
+        dict(code="it_service", name="IT 서비스", description="IT 서비스", sort_order=60),
+        dict(code="infra", name="인프라", description="인프라", sort_order=70),
+        dict(code="etc", name="기타", description="기타", sort_order=80),
     ]
     seed_codes = {s["code"] for s in seeds}
 
@@ -77,8 +76,14 @@ def seed_ticket_categories(session: Session) -> None:
         if exists:
             exists.name = s["name"]
             exists.description = s["description"]
+            exists.sort_order = s["sort_order"]
         else:
-            cat = TicketCategory(code=s["code"], name=s["name"], description=s["description"])
+            cat = TicketCategory(
+                code=s["code"],
+                name=s["name"],
+                description=s["description"],
+                sort_order=s["sort_order"],
+            )
             session.add(cat)
 
     if removed_codes:
