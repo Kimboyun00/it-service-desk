@@ -529,9 +529,9 @@ export default function HomePage() {
                   <input
                     ref={titleInputRef}
                     type="text"
-                    className="w-full text-2xl font-medium px-6 py-4 border-0 border-b-2 focus:outline-none focus:ring-0 transition-colors bg-transparent"
+                    className="w-full text-2xl font-medium px-6 py-4 rounded-xl border focus:outline-none focus:ring-0 transition-colors bg-transparent"
                     style={{
-                      borderColor: form.title.trim() ? "var(--color-primary-500)" : "var(--border-default)",
+                      borderColor: form.title.trim() ? "var(--border-default)" : "var(--border-default)",
                       color: "var(--text-primary)",
                     }}
                     placeholder="예: 프린터 연결이 안 됩니다"
