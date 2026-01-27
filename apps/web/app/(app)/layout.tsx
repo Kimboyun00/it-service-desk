@@ -58,13 +58,13 @@ function AppShell({ children }: { children: React.ReactNode }) {
           }}
         >
           <div className="px-6 py-3.5">
-            <div className={`mx-auto w-full ${isHomePage ? "max-w-[1400px]" : "max-w-[1600px]"} flex justify-end`}>
+            <div className={`mx-auto w-full ${isHomePage ? "max-w-[1400px]" : "max-w-[1800px]"} flex justify-end`}>
               <TopBar />
             </div>
           </div>
         </header>
         <main className="flex-1 px-6 py-6 app-content">
-          <div className={`mx-auto w-full ${isHomePage ? "max-w-[1400px]" : "max-w-[1600px]"}`}>{children}</div>
+          <div className={`mx-auto w-full ${isHomePage ? "max-w-[1400px]" : "max-w-[1800px]"}`}>{children}</div>
         </main>
       </div>
     </div>

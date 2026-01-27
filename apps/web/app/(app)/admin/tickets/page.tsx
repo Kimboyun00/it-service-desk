@@ -394,37 +394,39 @@ export default function AdminTicketsPage() {
                             {statusInfo.label}
                           </Badge>
                         </td>
-                        <td className="px-6 py-3 text-center relative" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex flex-wrap items-center justify-center gap-1.5">
-                            {(() => {
-                              const assignees = t.assignees || [];
-                              const empNos = t.assignee_emp_nos || (t.assignee_emp_no ? [t.assignee_emp_no] : []);
-                              const displayAssignees = assignees.length > 0
-                                ? assignees
-                                : staffOptions.filter((u) => empNos.includes(u.emp_no));
-                              
-                              if (displayAssignees.length === 0) {
-                                return (
-                                  <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
-                                    미배정
+                        <td className="px-6 py-3 text-center relative" style={{ minWidth: "200px" }} onClick={(e) => e.stopPropagation()}>
+                          <div className="flex flex-col items-center gap-1.5">
+                            <div className="flex items-center justify-center gap-1.5 flex-nowrap">
+                              {(() => {
+                                const assignees = t.assignees || [];
+                                const empNos = t.assignee_emp_nos || (t.assignee_emp_no ? [t.assignee_emp_no] : []);
+                                const displayAssignees = assignees.length > 0
+                                  ? assignees
+                                  : staffOptions.filter((u) => empNos.includes(u.emp_no));
+                                
+                                if (displayAssignees.length === 0) {
+                                  return (
+                                    <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+                                      미배정
+                                    </span>
+                                  );
+                                }
+                                
+                                return displayAssignees.map((u) => (
+                                  <span
+                                    key={u.emp_no}
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs whitespace-nowrap"
+                                    style={{
+                                      backgroundColor: "var(--color-primary-50)",
+                                      color: "var(--color-primary-700)",
+                                      border: "1px solid var(--color-primary-200)",
+                                    }}
+                                  >
+                                    {u.kor_name || u.emp_no}
                                   </span>
-                                );
-                              }
-                              
-                              return displayAssignees.map((u) => (
-                                <span
-                                  key={u.emp_no}
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs"
-                                  style={{
-                                    backgroundColor: "var(--color-primary-50)",
-                                    color: "var(--color-primary-700)",
-                                    border: "1px solid var(--color-primary-200)",
-                                  }}
-                                >
-                                  {u.kor_name || u.emp_no}
-                                </span>
-                              ));
-                            })()}
+                                ));
+                              })()}
+                            </div>
                             <button
                               className="text-xs px-1.5 py-0.5 rounded transition-colors"
                               style={{
