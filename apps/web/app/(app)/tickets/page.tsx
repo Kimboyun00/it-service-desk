@@ -396,8 +396,8 @@ export default function TicketsPage() {
                             {t.title}
                           </div>
                         </td>
-                        <td className=\"px-6 py-4 text-center\">
-                          <Badge variant={statusInfo.variant} size=\"md\">
+                        <td className="px-6 py-4 text-center">
+                          <Badge variant={statusInfo.variant} size="md">
                             {statusInfo.label}
                           </Badge>
                         </td>
