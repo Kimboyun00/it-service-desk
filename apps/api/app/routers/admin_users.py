@@ -33,6 +33,7 @@ def list_users(
         select(
             User.emp_no,
             User.kor_name,
+            User.eng_name,
             User.title,
             User.department,
             User.role,
@@ -43,6 +44,7 @@ def list_users(
         .group_by(
             User.emp_no,
             User.kor_name,
+            User.eng_name,
             User.title,
             User.department,
             User.role,
@@ -79,6 +81,7 @@ def update_role(
         select(
             User.emp_no,
             User.kor_name,
+            User.eng_name,
             User.title,
             User.department,
             User.role,
@@ -90,6 +93,7 @@ def update_role(
         .group_by(
             User.emp_no,
             User.kor_name,
+            User.eng_name,
             User.title,
             User.department,
             User.role,

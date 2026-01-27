@@ -195,7 +195,7 @@ export default function AdminManagerPage() {
   }
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="space-y-6 animate-fadeIn">
       <PageHeader
         title="카테고리 관리"
         subtitle="카테고리 및 담당자를 관리할 수 있습니다."

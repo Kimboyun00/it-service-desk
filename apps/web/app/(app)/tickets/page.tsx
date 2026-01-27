@@ -8,7 +8,7 @@ import { useTicketCategories } from "@/lib/use-ticket-categories";
 import Pagination from "@/components/Pagination";
 import ErrorDialog from "@/components/ErrorDialog";
 import PageHeader from "@/components/PageHeader";
-import { Badge, Card, CardHeader, CardBody } from "@/components/ui";
+import { Badge, Card, CardBody } from "@/components/ui";
 import { Search, ClipboardList } from "lucide-react";
 
 type BadgeVariant = "default" | "primary" | "success" | "warning" | "danger" | "info" | "neutral";
@@ -263,6 +263,76 @@ export default function TicketsPage() {
         title="처리 현황"
         subtitle="진행 중인 요청을 확인하고 관리하세요."
         icon={<ClipboardList className="w-7 h-7" />}
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <div
+              className="hidden md:flex items-center gap-1 rounded-lg border px-1.5 py-1.5"
+              style={{
+                backgroundColor: "var(--bg-elevated)",
+                borderColor: "var(--border-default)",
+                boxShadow: "var(--shadow-sm)",
+              }}
+            >
+              {STATUS_OPTIONS.map((o) => (
+                <button
+                  key={o.value}
+                  className="px-3 py-1.5 text-xs font-medium rounded-md transition-all"
+                  style={{
+                    backgroundColor: status === o.value ? "var(--color-primary-600)" : "transparent",
+                    color: status === o.value ? "#ffffff" : "var(--text-secondary)",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (status !== o.value) {
+                      e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (status !== o.value) {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }
+                  }}
+                  onClick={() => setStatus(o.value)}
+                  type="button"
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+
+            <select
+              className="border rounded-lg px-3 py-2 text-sm transition-colors"
+              style={{
+                backgroundColor: "var(--bg-input)",
+                borderColor: "var(--border-default)",
+                color: "var(--text-primary)",
+              }}
+              value={projectFilter}
+              onChange={(e) => setProjectFilter(e.target.value)}
+            >
+              <option value="all">전체 프로젝트</option>
+              {projects.map((p) => (
+                <option key={p.id} value={String(p.id)}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
+              <input
+                className="border rounded-lg pl-10 pr-3 py-2 text-sm w-56 transition-colors"
+                style={{
+                  backgroundColor: "var(--bg-input)",
+                  borderColor: "var(--border-default)",
+                  color: "var(--text-primary)",
+                }}
+                placeholder="제목/ID 검색"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+        }
       />
 
       {isLoading && (
@@ -275,81 +345,6 @@ export default function TicketsPage() {
 
       {!isLoading && (
         <Card padding="none">
-          <CardHeader>
-            <div className="flex items-center justify-end flex-wrap gap-4 w-full px-6 py-4">
-              <div className="flex items-center gap-2 flex-wrap">
-                <div
-                  className="hidden md:flex items-center gap-1 rounded-lg border px-1.5 py-1.5"
-                  style={{
-                    backgroundColor: "var(--bg-elevated)",
-                    borderColor: "var(--border-default)",
-                    boxShadow: "var(--shadow-sm)",
-                  }}
-                >
-                  {STATUS_OPTIONS.map((o) => (
-                    <button
-                      key={o.value}
-                      className="px-3 py-1.5 text-xs font-medium rounded-md transition-all"
-                      style={{
-                        backgroundColor: status === o.value ? "var(--color-primary-600)" : "transparent",
-                        color: status === o.value ? "#ffffff" : "var(--text-secondary)",
-                      }}
-                      onMouseEnter={(e) => {
-                        if (status !== o.value) {
-                          e.currentTarget.style.backgroundColor = "var(--bg-hover)";
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (status !== o.value) {
-                          e.currentTarget.style.backgroundColor = "transparent";
-                        }
-                      }}
-                      onClick={() => setStatus(o.value)}
-                      type="button"
-                    >
-                      {o.label}
-                    </button>
-                  ))}
-                </div>
-
-                <select
-                  className="border rounded-lg px-3 py-2 text-sm transition-colors"
-                  style={{
-                    backgroundColor: "var(--bg-input)",
-                    borderColor: "var(--border-default)",
-                    color: "var(--text-primary)",
-                  }}
-                  value={projectFilter}
-                  onChange={(e) => setProjectFilter(e.target.value)}
-                >
-                  <option value="all">전체 프로젝트</option>
-                  {projects.map((p) => (
-                    <option key={p.id} value={String(p.id)}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-
-                <div className="relative">
-                  <Search
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
-                    style={{ color: "var(--text-tertiary)" }}
-                  />
-                  <input
-                    className="border rounded-lg pl-10 pr-3 py-2 text-sm w-52 transition-colors"
-                    style={{
-                      backgroundColor: "var(--bg-input)",
-                      borderColor: "var(--border-default)",
-                      color: "var(--text-primary)",
-                    }}
-                    placeholder="제목/ID 검색"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-          </CardHeader>
           <CardBody padding="none">
             <div className="overflow-x-auto">
               <table className="w-full text-sm whitespace-nowrap">

@@ -194,6 +194,7 @@ function FieldRow({ label, value }: { label: string; value?: React.ReactNode }) 
       <div 
         className="col-span-4 text-sm px-4 py-2.5 font-medium"
         style={{ 
+          backgroundColor: "var(--bg-subtle)",
           color: "var(--text-secondary)",
         }}
       >
@@ -202,6 +203,7 @@ function FieldRow({ label, value }: { label: string; value?: React.ReactNode }) 
       <div 
         className="col-span-8 text-sm px-4 py-2.5"
         style={{ 
+          backgroundColor: "rgba(0,0,0,0)",
           color: "var(--text-primary)",
           borderLeft: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))",
         }}
@@ -299,12 +301,6 @@ export default function AdminTicketDetailPage() {
     staleTime: 30_000,
     enabled: isStaff,
   });
-
-  useEffect(() => {
-    if (data?.comments && commentsEndRef.current) {
-      commentsEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [data?.comments]);
 
   const staffOptions = useMemo(() => adminUsers.filter((u) => u.role === "admin"), [adminUsers]);
 
@@ -588,14 +584,18 @@ export default function AdminTicketDetailPage() {
           </CardBody>
         </Card>
 
-        <Card>
-          <div 
-            className="overflow-hidden rounded-xl"
-            style={{ 
-              border: "1.5px solid var(--border-default)",
-            }}
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2">
+        <div 
+          className="overflow-hidden rounded-xl"
+          style={{ 
+            border: "1px solid var(--border-default)",
+            backgroundColor: "var(--bg-card)",
+          }}
+        >
+            <div className="relative grid grid-cols-1 md:grid-cols-2">
+              <div
+                className="hidden md:block absolute inset-y-0 left-1/2 w-px"
+                style={{ backgroundColor: "var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
+              />
               <FieldRow label="요청자" value={formatUser(t.requester, t.requester_emp_no)} />
               <FieldRow
                 label="상태"
@@ -673,9 +673,13 @@ export default function AdminTicketDetailPage() {
               />
             </div>
             <div 
-              className="grid grid-cols-1 md:grid-cols-2"
+              className="relative grid grid-cols-1 md:grid-cols-2"
               style={{ borderTop: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
             >
+              <div
+                className="hidden md:block absolute inset-y-0 left-1/2 w-px"
+                style={{ backgroundColor: "var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
+              />
               <FieldRow
                 label="담당자"
                 value={
@@ -785,9 +789,13 @@ export default function AdminTicketDetailPage() {
               <FieldRow label="프로젝트" value={t.project_name ?? "-"} />
             </div>
             <div 
-              className="grid grid-cols-1 md:grid-cols-2"
+              className="relative grid grid-cols-1 md:grid-cols-2"
               style={{ borderTop: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
             >
+              <div
+                className="hidden md:block absolute inset-y-0 left-1/2 w-px"
+                style={{ backgroundColor: "var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
+              />
               <FieldRow
                 label="카테고리"
                 value={
@@ -895,9 +903,13 @@ export default function AdminTicketDetailPage() {
               <FieldRow label="생성일" value={formatDate(t.created_at)} />
             </div>
             <div 
-              className="grid grid-cols-1 md:grid-cols-2"
+              className="relative grid grid-cols-1 md:grid-cols-2"
               style={{ borderTop: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
             >
+              <div
+                className="hidden md:block absolute inset-y-0 left-1/2 w-px"
+                style={{ backgroundColor: "var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
+              />
               <FieldRow
                 label="작업 구분"
                 value={
@@ -1004,8 +1016,7 @@ export default function AdminTicketDetailPage() {
               />
               <FieldRow label="" value="" />
             </div>
-          </div>
-        </Card>
+        </div>
 
         <Card>
           <CardHeader>
@@ -1211,27 +1222,17 @@ export default function AdminTicketDetailPage() {
           </>
         )}
 
-        <Card>
-          <CardHeader>
-            <h2 
-              className="text-base font-semibold"
-              style={{ color: "var(--text-primary)" }}
-            >
-              새 답변 작성
-            </h2>
-          </CardHeader>
-          <CardBody padding="lg">
-            <div className="space-y-3">
-              <RichTextEditor
-                value={commentBody}
-                onChange={(doc) => setCommentBody(doc)}
-                onError={setCommentError}
-                placeholder="답변을 입력하세요..."
-                showToolbar={false}
-                minHeight="100px"
-              />
+        <div className="space-y-3">
+          <RichTextEditor
+            value={commentBody}
+            onChange={(doc) => setCommentBody(doc)}
+            onError={setCommentError}
+            placeholder="답변을 입력하세요..."
+            showToolbar={true}
+            minHeight="100px"
+          />
 
-              <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
                 <input
                   id="admin-comment-file-input"
                   type="file"
@@ -1339,18 +1340,15 @@ export default function AdminTicketDetailPage() {
                 </div>
               )}
 
-              {commentError && (
-                <div 
-                  className="text-xs"
-                  style={{ color: "var(--color-danger-600)" }}
-                >
-                  {commentError}
-                </div>
-              )}
+          {commentError && (
+            <div 
+              className="text-xs"
+              style={{ color: "var(--color-danger-600)" }}
+            >
+              {commentError}
             </div>
-          </CardBody>
-        </Card>
-
+          )}
+        </div>
 
         <Card>
           <CardHeader>

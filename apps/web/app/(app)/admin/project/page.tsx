@@ -63,7 +63,7 @@ export default function AdminProjectPage() {
 
   if (me.role !== "admin") {
     return (
-      <div className="p-6">
+      <div className="space-y-6 animate-fadeIn">
         <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">
           관리자만 접근할 수 있습니다.
         </div>
@@ -72,7 +72,7 @@ export default function AdminProjectPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6 animate-fadeIn">
       <PageHeader
         title="프로젝트 관리"
         subtitle="프로젝트 이름과 기간을 입력해 생성할 수 있습니다."

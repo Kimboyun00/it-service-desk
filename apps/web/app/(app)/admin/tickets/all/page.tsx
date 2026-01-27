@@ -9,7 +9,7 @@ import { useTicketCategories } from "@/lib/use-ticket-categories";
 import Pagination from "@/components/Pagination";
 import ErrorDialog from "@/components/ErrorDialog";
 import PageHeader from "@/components/PageHeader";
-import { Badge, Card, CardHeader, CardBody } from "@/components/ui";
+import { Badge, Card, CardBody } from "@/components/ui";
 import { Search, ListChecks } from "lucide-react";
 
 type Ticket = {
@@ -305,6 +305,22 @@ export default function AdminAllTicketsPage() {
         title="모든 요청 관리"
         subtitle="전체 요청을 검색하고 관리하세요."
         icon={<ListChecks className="w-7 h-7" />}
+        actions={
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
+            <input
+              className="border rounded-lg pl-10 pr-3 py-2 text-sm w-80 transition-colors"
+              style={{
+                backgroundColor: "var(--bg-input)",
+                borderColor: "var(--border-default)",
+                color: "var(--text-primary)",
+              }}
+              placeholder="제목/ID/카테고리 검색"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        }
       />
 
       {isLoading && (
@@ -317,27 +333,6 @@ export default function AdminAllTicketsPage() {
 
       {!isLoading && (
         <Card padding="none">
-          <CardHeader>
-            <div className="flex items-center justify-end flex-wrap gap-4 w-full px-6 py-4">
-              <div className="relative">
-                <Search
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
-                  style={{ color: "var(--text-tertiary)" }}
-                />
-                <input
-                  className="border rounded-lg pl-10 pr-3 py-2 text-sm w-64 transition-colors"
-                  style={{
-                    backgroundColor: "var(--bg-input)",
-                    borderColor: "var(--border-default)",
-                    color: "var(--text-primary)",
-                  }}
-                  placeholder="제목/ID/카테고리 검색"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-            </div>
-          </CardHeader>
           <CardBody padding="none">
             <div className="overflow-x-auto">
               <table className="w-full text-sm whitespace-nowrap">

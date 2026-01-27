@@ -185,6 +185,7 @@ function FieldRow({ label, value }: { label: string; value?: React.ReactNode }) 
       <div 
         className="col-span-4 text-sm px-4 py-2.5 font-medium"
         style={{ 
+          backgroundColor: "var(--bg-subtle)",
           color: "var(--text-secondary)",
         }}
       >
@@ -193,6 +194,7 @@ function FieldRow({ label, value }: { label: string; value?: React.ReactNode }) 
       <div 
         className="col-span-8 text-sm px-4 py-2.5"
         style={{ 
+          backgroundColor: "rgba(0,0,0,0)",
           color: "var(--text-primary)",
           borderLeft: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))",
         }}
@@ -247,12 +249,6 @@ export default function TicketDetailPage() {
     );
   }, [data?.events]);
 
-  useEffect(() => {
-    if (data?.comments && commentsEndRef.current) {
-      commentsEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [data?.comments]);
-
   const downloadAttachmentM = useMutation({
     mutationFn: async (attachmentId: number) => {
       const { url } = await api<{ url: string }>(`/attachments/${attachmentId}/download-url`);
@@ -294,17 +290,6 @@ export default function TicketDetailPage() {
       a.remove();
       URL.revokeObjectURL(objectUrl);
       return true;
-    },
-  });
-
-  const deleteM = useMutation({
-    mutationFn: () =>
-      api(`/tickets/${ticketId}`, {
-        method: "DELETE",
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["tickets"] });
-      router.replace("/tickets");
     },
   });
 
@@ -399,7 +384,6 @@ export default function TicketDetailPage() {
   const statusInfo = statusMeta(t.status);
   const priorityInfo = priorityMeta(t.priority);
   const ticketAttachments = data.attachments.filter((a) => !a.comment_id);
-  const canEdit = t.status === "open" && t.requester_emp_no === me.emp_no;
 
   return (
     <>
@@ -410,54 +394,6 @@ export default function TicketDetailPage() {
           icon={<FileText className="w-7 h-7" />}
           actions={
             <div className="flex items-center gap-2">
-              {canEdit && (
-                <button
-                  className="rounded-lg px-4 py-2 text-sm font-medium transition-all"
-                  style={{
-                    backgroundColor: "var(--bg-elevated)",
-                    borderWidth: "1px",
-                    borderStyle: "solid",
-                    borderColor: "var(--border-default)",
-                    color: "var(--text-primary)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "var(--bg-hover)";
-                    e.currentTarget.style.boxShadow = "var(--shadow-sm)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
-                  onClick={() => router.replace(`/tickets/${ticketId}/edit`)}
-                >
-                  수정
-                </button>
-              )}
-              {canEdit && (
-                <button
-                  className="rounded-lg px-4 py-2 text-sm font-medium transition-all"
-                  style={{
-                    backgroundColor: "var(--color-danger-50)",
-                    borderWidth: "1px",
-                    borderStyle: "solid",
-                    borderColor: "var(--color-danger-200)",
-                    color: "var(--color-danger-700)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "var(--color-danger-100)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "var(--color-danger-50)";
-                  }}
-                  onClick={() => {
-                    if (!confirm("요청을 삭제하시겠습니까?")) return;
-                    deleteM.mutate();
-                  }}
-                  disabled={deleteM.isPending}
-                >
-                  {deleteM.isPending ? "삭제 중.." : "삭제"}
-                </button>
-              )}
               <button
                 className="rounded-lg px-4 py-2 text-sm font-medium transition-all"
                 style={{
@@ -483,21 +419,29 @@ export default function TicketDetailPage() {
           }
         />
 
-        <Card>
-          <div 
-            className="overflow-hidden rounded-xl"
-            style={{ 
-              border: "1.5px solid var(--border-default)",
-            }}
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2">
+        <div 
+          className="overflow-hidden rounded-xl"
+          style={{ 
+            border: "1px solid var(--border-default)",
+            backgroundColor: "var(--bg-card)",
+          }}
+        >
+            <div className="relative grid grid-cols-1 md:grid-cols-2">
+              <div
+                className="hidden md:block absolute inset-y-0 left-1/2 w-px"
+                style={{ backgroundColor: "var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
+              />
               <FieldRow label="요청자" value={formatUser(t.requester, t.requester_emp_no)} />
               <FieldRow label="프로젝트" value={t.project_name ?? "-"} />
             </div>
             <div 
-              className="grid grid-cols-1 md:grid-cols-2"
+              className="relative grid grid-cols-1 md:grid-cols-2"
               style={{ borderTop: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
             >
+              <div
+                className="hidden md:block absolute inset-y-0 left-1/2 w-px"
+                style={{ backgroundColor: "var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
+              />
               <FieldRow
                 label="담당자"
                 value={formatAssignees(t.assignees, t.assignee_emp_nos ?? null)}
@@ -505,9 +449,13 @@ export default function TicketDetailPage() {
               <FieldRow label="생성일" value={formatDate(t.created_at)} />
             </div>
             <div 
-              className="grid grid-cols-1 md:grid-cols-2"
+              className="relative grid grid-cols-1 md:grid-cols-2"
               style={{ borderTop: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
             >
+              <div
+                className="hidden md:block absolute inset-y-0 left-1/2 w-px"
+                style={{ backgroundColor: "var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
+              />
               <FieldRow
                 label="카테고리"
                 value={formatCategoryList(
@@ -518,9 +466,13 @@ export default function TicketDetailPage() {
               <FieldRow label="" value="" />
             </div>
             <div 
-              className="grid grid-cols-1 md:grid-cols-2"
+              className="relative grid grid-cols-1 md:grid-cols-2"
               style={{ borderTop: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
             >
+              <div
+                className="hidden md:block absolute inset-y-0 left-1/2 w-px"
+                style={{ backgroundColor: "var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
+              />
               <FieldRow 
                 label="작업 구분" 
                 value={
@@ -542,8 +494,7 @@ export default function TicketDetailPage() {
               />
               <FieldRow label="" value="" />
             </div>
-          </div>
-        </Card>
+        </div>
 
         <Card>
           <CardHeader>
@@ -756,145 +707,127 @@ export default function TicketDetailPage() {
           </>
         )}
 
-        <Card>
-          <CardHeader>
-            <h2 
-              className="text-base font-semibold"
-              style={{ color: "var(--text-primary)" }}
+        <div className="space-y-3">
+          <RichTextEditor
+            value={commentBody}
+            onChange={(doc) => setCommentBody(doc)}
+            onError={setCommentError}
+            placeholder="답변을 입력하세요..."
+            showToolbar={true}
+            minHeight="100px"
+          />
+
+          <div className="flex items-center gap-2">
+            <input
+              id="comment-file-input"
+              type="file"
+              multiple
+              className="sr-only"
+              ref={commentFileInputRef}
+              onChange={(e) => {
+                addCommentFiles(e.currentTarget.files);
+                e.currentTarget.value = "";
+              }}
+            />
+            <button
+              type="button"
+              className="text-xs rounded-lg px-3 py-1.5 font-medium transition-all"
+              style={{
+                backgroundColor: "var(--bg-elevated)",
+                borderWidth: "1px",
+                borderStyle: "solid",
+                borderColor: "var(--border-default)",
+                color: "var(--text-primary)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
+              }}
+              onClick={() => commentFileInputRef.current?.click()}
             >
-              새 답변 작성
-            </h2>
-          </CardHeader>
-          <CardBody padding="lg">
-            <div className="space-y-3">
-              <RichTextEditor
-                value={commentBody}
-                onChange={(doc) => setCommentBody(doc)}
-                onError={setCommentError}
-                placeholder="답변을 입력하세요..."
-                showToolbar={false}
-                minHeight="100px"
+              📎 파일 첨부
+            </button>
+
+            {commentFiles.length > 0 && (
+              <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                {commentFiles.length}개 파일
+              </span>
+            )}
+
+            <div className="flex-1" />
+
+            <label className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-secondary)" }}>
+              <input
+                type="checkbox"
+                className="h-3 w-3 rounded"
+                checked={commentNotifyEmail}
+                onChange={(e) => setCommentNotifyEmail(e.target.checked)}
               />
+              메일 알림
+            </label>
 
-              <div className="flex items-center gap-2">
-                <input
-                  id="comment-file-input"
-                  type="file"
-                  multiple
-                  className="sr-only"
-                  ref={commentFileInputRef}
-                  onChange={(e) => {
-                    addCommentFiles(e.currentTarget.files);
-                    e.currentTarget.value = "";
-                  }}
-                />
-                <button
-                  type="button"
-                  className="text-xs rounded-lg px-3 py-1.5 font-medium transition-all"
+            <button
+              className="text-sm rounded-lg px-5 py-2.5 font-medium transition-all disabled:opacity-60"
+              style={{
+                backgroundColor: "var(--color-primary-600)",
+                color: "#ffffff",
+              }}
+              onMouseEnter={(e) => {
+                if (!e.currentTarget.disabled) {
+                  e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
+              }}
+              disabled={createCommentM.isPending || isEmptyDoc(commentBody)}
+              onClick={() => {
+                setCommentError(null);
+                if (isEmptyDoc(commentBody)) {
+                  setCommentError("답변 내용을 입력하세요.");
+                  return;
+                }
+                createCommentM.mutate();
+              }}
+            >
+              {createCommentM.isPending ? "등록 중..." : "등록"}
+            </button>
+          </div>
+
+          {commentFiles.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {commentFiles.map((file, idx) => (
+                <div
+                  key={`${file.name}-${idx}`}
+                  className="flex items-center gap-2 rounded-lg border px-2 py-1 text-xs"
                   style={{
-                    backgroundColor: "var(--bg-elevated)",
-                    borderWidth: "1px",
-                    borderStyle: "solid",
                     borderColor: "var(--border-default)",
-                    color: "var(--text-primary)",
+                    backgroundColor: "var(--bg-elevated)",
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "var(--bg-hover)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
-                  }}
-                  onClick={() => commentFileInputRef.current?.click()}
                 >
-                  📎 파일 첨부
-                </button>
-
-                {commentFiles.length > 0 && (
-                  <span 
-                    className="text-xs"
-                    style={{ color: "var(--text-secondary)" }}
+                  <span style={{ color: "var(--text-primary)" }}>{file.name}</span>
+                  <span style={{ color: "var(--text-tertiary)" }}>({formatBytes(file.size)})</span>
+                  <button
+                    type="button"
+                    className="hover:underline"
+                    style={{ color: "var(--color-danger-600)" }}
+                    onClick={() => removeCommentFile(idx)}
                   >
-                    {commentFiles.length}개 파일
-                  </span>
-                )}
-
-                <div className="flex-1" />
-
-                <label className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-secondary)" }}>
-                  <input
-                    type="checkbox"
-                    className="h-3 w-3 rounded"
-                    checked={commentNotifyEmail}
-                    onChange={(e) => setCommentNotifyEmail(e.target.checked)}
-                  />
-                  메일 알림
-                </label>
-
-                <button
-                  className="text-sm rounded-lg px-5 py-2.5 font-medium transition-all disabled:opacity-60"
-                  style={{
-                    backgroundColor: "var(--color-primary-600)",
-                    color: "#ffffff",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!e.currentTarget.disabled) {
-                      e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
-                  }}
-                  disabled={createCommentM.isPending || isEmptyDoc(commentBody)}
-                  onClick={() => {
-                    setCommentError(null);
-                    if (isEmptyDoc(commentBody)) {
-                      setCommentError("답변 내용을 입력하세요.");
-                      return;
-                    }
-                    createCommentM.mutate();
-                  }}
-                >
-                  {createCommentM.isPending ? "등록 중..." : "등록"}
-                </button>
-              </div>
-
-              {commentFiles.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {commentFiles.map((file, idx) => (
-                    <div
-                      key={`${file.name}-${idx}`}
-                      className="flex items-center gap-2 rounded-lg border px-2 py-1 text-xs"
-                      style={{ 
-                        borderColor: "var(--border-default)",
-                        backgroundColor: "var(--bg-elevated)"
-                      }}
-                    >
-                      <span style={{ color: "var(--text-primary)" }}>{file.name}</span>
-                      <span style={{ color: "var(--text-tertiary)" }}>({formatBytes(file.size)})</span>
-                      <button
-                        type="button"
-                        className="hover:underline"
-                        style={{ color: "var(--color-danger-600)" }}
-                        onClick={() => removeCommentFile(idx)}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
+                    ×
+                  </button>
                 </div>
-              )}
-
-              {commentError && (
-                <div 
-                  className="text-xs"
-                  style={{ color: "var(--color-danger-600)" }}
-                >
-                  {commentError}
-                </div>
-              )}
+              ))}
             </div>
-          </CardBody>
-        </Card>
+          )}
+
+          {commentError && (
+            <div className="text-xs" style={{ color: "var(--color-danger-600)" }}>
+              {commentError}
+            </div>
+          )}
+        </div>
 
         <Card>
           <CardHeader>

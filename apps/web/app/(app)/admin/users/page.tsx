@@ -17,12 +17,22 @@ type SortKey = "emp_no" | "kor_name" | "title" | "department" | "pending_total";
 type UserRow = {
   emp_no: string;
   kor_name?: string | null;
+  eng_name?: string | null;
   title?: string | null;
   department?: string | null;
   pending: number;
   total: number;
   role: Role;
 };
+
+function displayName(u: { kor_name?: string | null; eng_name?: string | null }): string {
+  const kor = u.kor_name?.trim() || "";
+  const eng = u.eng_name?.trim() || "";
+  if (kor && eng) return `${kor}(${eng})`;
+  if (kor) return kor;
+  if (eng) return eng;
+  return "-";
+}
 
 function RoleBadge({ role }: { role: Role }) {
   const variant = role === "admin" ? "success" : "default";
@@ -78,10 +88,11 @@ export default function AdminUsersPage() {
     if (!term) return users;
     return users.filter((u) => {
       const name = (u.kor_name ?? "").toLowerCase();
+      const eng = (u.eng_name ?? "").toLowerCase();
       const title = (u.title ?? "").toLowerCase();
       const dept = (u.department ?? "").toLowerCase();
       const emp = (u.emp_no ?? "").toLowerCase();
-      return name.includes(term) || title.includes(term) || dept.includes(term) || emp.includes(term);
+      return name.includes(term) || eng.includes(term) || title.includes(term) || dept.includes(term) || emp.includes(term);
     });
   }, [users, search]);
 
@@ -124,10 +135,11 @@ export default function AdminUsersPage() {
     if (!term) return users;
     return users.filter((u) => {
       const name = (u.kor_name ?? "").toLowerCase();
+      const eng = (u.eng_name ?? "").toLowerCase();
       const title = (u.title ?? "").toLowerCase();
       const dept = (u.department ?? "").toLowerCase();
       const emp = (u.emp_no ?? "").toLowerCase();
-      return name.includes(term) || title.includes(term) || dept.includes(term) || emp.includes(term);
+      return name.includes(term) || eng.includes(term) || title.includes(term) || dept.includes(term) || emp.includes(term);
     });
   }, [adminSearch, users]);
 
@@ -197,7 +209,7 @@ export default function AdminUsersPage() {
               style={{ color: "var(--text-tertiary)" }}
             />
             <input
-              className="border rounded-lg pl-10 pr-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 transition-all"
+              className="border rounded-lg pl-10 pr-3 py-2 text-sm w-80 md:w-[420px] focus:outline-none focus:ring-2 transition-all"
               style={{
                 borderColor: "var(--border-default)",
                 backgroundColor: "var(--bg-card)",
@@ -218,19 +230,18 @@ export default function AdminUsersPage() {
           <thead style={{ backgroundColor: "var(--bg-subtle)" }}>
             <tr style={{ borderBottom: "1px solid var(--border-default)" }}>
               <th className="text-left p-3 w-28">{renderSortLabel("emp_no", "ID")}</th>
-              <th className="text-left p-3 w-28">{renderSortLabel("kor_name", "이름")}</th>
+              <th className="text-left p-3 w-40">{renderSortLabel("kor_name", "이름")}</th>
               <th className="text-left p-3 w-28">{renderSortLabel("title", "직급")}</th>
               <th className="text-left p-3 w-40">{renderSortLabel("department", "부서/직책")}</th>
               <th className="text-left p-3 w-40">
                 {renderSortLabel("pending_total", "미처리/등록 요청")}
               </th>
-              <th className="text-left p-3 w-20">관리</th>
             </tr>
           </thead>
           <tbody>
             {loading && (
               <tr style={{ borderTop: "1px solid var(--border-subtle)" }}>
-                <td className="p-3" style={{ color: "var(--text-secondary)" }} colSpan={6}>
+                <td className="p-3" style={{ color: "var(--text-secondary)" }} colSpan={5}>
                   사용자 목록을 불러오는 중입니다...
                 </td>
               </tr>
@@ -252,7 +263,7 @@ export default function AdminUsersPage() {
                     {u.emp_no || "-"}
                   </td>
                   <td className="p-3 font-medium" style={{ color: "var(--text-primary)" }}>
-                    {u.kor_name || "-"}
+                    {displayName(u)}
                   </td>
                   <td className="p-3" style={{ color: "var(--text-secondary)" }}>
                     {u.title || "-"}
@@ -267,14 +278,11 @@ export default function AdminUsersPage() {
                     <span style={{ color: "var(--text-tertiary)" }}> / </span>
                     <span>{u.total}</span>
                   </td>
-                  <td className="p-3" style={{ color: "var(--text-tertiary)" }}>
-                    -
-                  </td>
                 </tr>
               ))}
             {!loading && !paged.length && (
               <tr style={{ borderTop: "1px solid var(--border-subtle)" }}>
-                <td className="p-3" style={{ color: "var(--text-secondary)" }} colSpan={6}>
+                <td className="p-3" style={{ color: "var(--text-secondary)" }} colSpan={5}>
                   검색 결과가 없습니다.
                 </td>
               </tr>
@@ -369,7 +377,7 @@ export default function AdminUsersPage() {
                         color: "var(--color-success-900)",
                       }}
                     >
-                      {u.kor_name ?? "-"} / {u.title ?? "-"}
+                      {displayName(u)} / {u.title ?? "-"}
                     </div>
                   ))}
                   {!admins.length && (
@@ -407,7 +415,7 @@ export default function AdminUsersPage() {
                       style={{ borderColor: "var(--border-subtle)" }}
                     >
                       <div style={{ color: "var(--text-primary)" }}>
-                        {u.emp_no} · {u.kor_name ?? "-"} / {u.title ?? "-"} / {u.department ?? "-"}
+                        {u.emp_no} · {displayName(u)} / {u.title ?? "-"} / {u.department ?? "-"}
                       </div>
                       <button
                         type="button"
