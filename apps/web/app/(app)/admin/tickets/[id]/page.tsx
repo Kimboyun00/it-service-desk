@@ -203,7 +203,6 @@ function FieldRow({ label, value }: { label: string; value?: React.ReactNode }) 
         className="col-span-8 text-sm px-4 py-2.5"
         style={{ 
           color: "var(--text-primary)",
-          borderLeft: "1px solid var(--border-subtle, var(--border-default))"
         }}
       >
         {value ?? "-"}
@@ -848,12 +847,12 @@ export default function AdminTicketDetailPage() {
               className="divide-y"
               style={{ 
                 borderColor: "var(--border-default)",
-                borderLeft: "1px solid var(--border-default)",
               }}
             >
               <FieldRow label="프로젝트" value={t.project_name ?? "-"} />
               <FieldRow label="생성일" value={formatDate(t.created_at)} />
               <FieldRow label="최근 업데이트" value={formatDate(t.updated_at || t.created_at)} />
+              <FieldRow label="마감일" value={"-"} />
               <FieldRow label="" value="" />
             </div>
           </div>
