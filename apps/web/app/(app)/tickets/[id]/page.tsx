@@ -115,7 +115,7 @@ function priorityMeta(priority: string): { label: string; variant: BadgeVariant 
 }
 
 function workTypeLabel(value?: string | null) {
-  if (!value) return "-";
+  if (!value) return null;
   const map: Record<string, string> = {
     incident: "장애",
     request: "요청",
@@ -473,24 +473,29 @@ export default function TicketDetailPage() {
 
         <Card>
           <div 
-            className="overflow-hidden rounded-xl divide-y"
+            className="overflow-hidden rounded-xl"
             style={{ 
-              border: "1px solid var(--border-default)",
-              borderColor: "var(--border-default)",
+              border: "1.5px solid var(--border-default)",
             }}
           >
             <div className="grid grid-cols-1 md:grid-cols-2">
               <FieldRow label="요청자" value={formatUser(t.requester, t.requester_emp_no)} />
               <FieldRow label="프로젝트" value={t.project_name ?? "-"} />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2">
+            <div 
+              className="grid grid-cols-1 md:grid-cols-2"
+              style={{ borderTop: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
+            >
               <FieldRow
                 label="담당자"
                 value={formatAssignees(t.assignees, t.assignee_emp_nos ?? null)}
               />
               <FieldRow label="생성일" value={formatDate(t.created_at)} />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2">
+            <div 
+              className="grid grid-cols-1 md:grid-cols-2"
+              style={{ borderTop: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
+            >
               <FieldRow
                 label="카테고리"
                 value={formatCategoryList(
@@ -500,8 +505,29 @@ export default function TicketDetailPage() {
               />
               <FieldRow label="" value="" />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2">
-              <FieldRow label="작업 구분" value={workTypeLabel(t.work_type)} />
+            <div 
+              className="grid grid-cols-1 md:grid-cols-2"
+              style={{ borderTop: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
+            >
+              <FieldRow 
+                label="작업 구분" 
+                value={
+                  !t.work_type ? (
+                    <span style={{ color: "var(--text-tertiary)" }}>선택 안 함</span>
+                  ) : (
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium"
+                      style={{
+                        backgroundColor: "var(--color-success-50)",
+                        color: "var(--color-success-700)",
+                        border: "1px solid var(--color-success-200)",
+                      }}
+                    >
+                      {workTypeLabel(t.work_type)}
+                    </span>
+                  )
+                }
+              />
               <FieldRow label="" value="" />
             </div>
           </div>

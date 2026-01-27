@@ -276,6 +276,7 @@ export default function AdminTicketDetailPage() {
   const [commentNotifyEmail, setCommentNotifyEmail] = useState(true);
   const [isEditingAssignees, setIsEditingAssignees] = useState(false);
   const [isEditingCategories, setIsEditingCategories] = useState(false);
+  const [isEditingWorkType, setIsEditingWorkType] = useState(false);
   const commentFileInputRef = useRef<HTMLInputElement | null>(null);
   const commentsEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -586,17 +587,19 @@ export default function AdminTicketDetailPage() {
 
         <Card>
           <div 
-            className="overflow-hidden rounded-xl divide-y"
+            className="overflow-hidden rounded-xl"
             style={{ 
-              border: "1px solid var(--border-default)",
-              borderColor: "var(--border-default)",
+              border: "1.5px solid var(--border-default)",
             }}
           >
             <div className="grid grid-cols-1 md:grid-cols-2">
               <FieldRow label="요청자" value={formatUser(t.requester, t.requester_emp_no)} />
               <FieldRow label="프로젝트" value={t.project_name ?? "-"} />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2">
+            <div 
+              className="grid grid-cols-1 md:grid-cols-2"
+              style={{ borderTop: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
+            >
               <FieldRow
                 label="담당자"
                 value={
@@ -705,7 +708,10 @@ export default function AdminTicketDetailPage() {
               />
               <FieldRow label="생성일" value={formatDate(t.created_at)} />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2">
+            <div 
+              className="grid grid-cols-1 md:grid-cols-2"
+              style={{ borderTop: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
+            >
               <FieldRow
                 label="카테고리"
                 value={
@@ -812,34 +818,112 @@ export default function AdminTicketDetailPage() {
               />
               <FieldRow label="" value="" />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2">
+            <div 
+              className="grid grid-cols-1 md:grid-cols-2"
+              style={{ borderTop: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
+            >
               <FieldRow
                 label="작업 구분"
                 value={
-                  <select
-                    className="w-full rounded-lg px-3 py-1.5 text-sm transition-colors"
-                    style={{
-                      border: "1px solid var(--border-default)",
-                      backgroundColor: "var(--bg-input)",
-                      color: "var(--text-primary)",
-                    }}
-                    value={workType}
-                    onChange={(e) => {
-                      const next = e.target.value || null;
-                      setWorkType(e.target.value);
-                      updateMetaM.mutate({
-                        category_ids: categoryIds,
-                        work_type: next,
-                      });
-                    }}
-                  >
-                    <option value="">선택 안 함</option>
-                    {WORK_TYPE_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="space-y-2">
+                    {!isEditingWorkType ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        {!workType ? (
+                          <span 
+                            className="text-sm"
+                            style={{ color: "var(--text-tertiary)" }}
+                          >
+                            선택 안 함
+                          </span>
+                        ) : (
+                          <span
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium"
+                            style={{
+                              backgroundColor: "var(--color-success-50)",
+                              color: "var(--color-success-700)",
+                              border: "1px solid var(--color-success-200)",
+                            }}
+                          >
+                            {workTypeLabel(workType)}
+                          </span>
+                        )}
+                        <button
+                          className="text-xs px-2 py-1 rounded transition-colors"
+                          style={{
+                            color: "var(--color-primary-600)",
+                            backgroundColor: "var(--bg-elevated)",
+                            border: "1px solid var(--border-default)",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
+                          }}
+                          onClick={() => setIsEditingWorkType(true)}
+                        >
+                          편집
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="space-y-2">
+                          <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
+                            <input
+                              type="radio"
+                              className="h-4 w-4"
+                              style={{ accentColor: "var(--color-primary-600)" }}
+                              checked={!workType}
+                              onChange={() => {
+                                setWorkType("");
+                                updateMetaM.mutate({
+                                  category_ids: categoryIds,
+                                  work_type: null,
+                                });
+                              }}
+                            />
+                            <span>선택 안 함</span>
+                          </label>
+                          {WORK_TYPE_OPTIONS.map((o) => (
+                            <label key={o.value} className="inline-flex items-center gap-2 text-sm cursor-pointer">
+                              <input
+                                type="radio"
+                                className="h-4 w-4"
+                                style={{ accentColor: "var(--color-primary-600)" }}
+                                checked={workType === o.value}
+                                onChange={() => {
+                                  setWorkType(o.value);
+                                  updateMetaM.mutate({
+                                    category_ids: categoryIds,
+                                    work_type: o.value,
+                                  });
+                                }}
+                              />
+                              <span>{o.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="text-xs px-3 py-1 rounded transition-colors font-medium"
+                            style={{
+                              color: "white",
+                              backgroundColor: "var(--color-primary-600)",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
+                            }}
+                            onClick={() => setIsEditingWorkType(false)}
+                          >
+                            완료
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 }
               />
               <FieldRow label="" value="" />
