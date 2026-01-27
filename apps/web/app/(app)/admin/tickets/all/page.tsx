@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useMe } from "@/lib/auth-context";
 import { useTicketCategories } from "@/lib/use-ticket-categories";
@@ -22,6 +22,8 @@ type Ticket = {
   requester_emp_no: string;
   assignee?: UserSummary | null;
   assignee_emp_no?: string | null;
+  assignee_emp_nos?: string[] | null;
+  assignees?: UserSummary[] | null;
   created_at: string;
   updated_at: string;
 };
@@ -145,6 +147,8 @@ export default function AdminAllTicketsPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [editingTicketId, setEditingTicketId] = useState<number | null>(null);
+  const qc = useQueryClient();
 
   if (me.role !== "admin") {
     router.replace("/home");
@@ -158,6 +162,32 @@ export default function AdminAllTicketsPage() {
     queryKey: ["admin-tickets-all", { limit, offset }],
     queryFn: () => api<TicketListResponse>(`/tickets?scope=all&limit=${limit}&offset=${offset}`),
     staleTime: 5_000,
+  });
+
+  const { data: adminUsers = [] } = useQuery({
+    queryKey: ["admin-users"],
+    queryFn: () => api<UserSummary[]>("/admin/users"),
+    staleTime: 30_000,
+  });
+
+  const staffOptions = useMemo(() => adminUsers.filter((u) => u.role === "admin"), [adminUsers]);
+
+  const assignM = useMutation({
+    mutationFn: ({
+      ticketId,
+      assigneeEmpNos,
+    }: {
+      ticketId: number;
+      assigneeEmpNos: string[];
+    }) =>
+      api(`/tickets/${ticketId}/assign`, {
+        method: "PATCH",
+        body: { assignee_emp_nos: assigneeEmpNos },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-tickets-all"] });
+      qc.invalidateQueries({ queryKey: ["admin-ticket-detail"] });
+    },
   });
 
   useEffect(() => {
@@ -292,7 +322,7 @@ export default function AdminAllTicketsPage() {
                   style={{ color: "var(--text-tertiary)" }}
                 />
                 <input
-                  className="border rounded-lg pl-10 pr-3 py-2 text-sm w-52 transition-colors"
+                  className="border rounded-lg pl-10 pr-3 py-2 text-sm w-64 transition-colors"
                   style={{
                     backgroundColor: "var(--bg-input)",
                     borderColor: "var(--border-default)",
@@ -368,8 +398,107 @@ export default function AdminAllTicketsPage() {
                             {statusInfo.label}
                           </Badge>
                         </td>
-                        <td className="px-6 py-4 text-center whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>
-                          {formatUser(t.assignee, t.assignee_emp_no, "미배정")}
+                        <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                          {editingTicketId === t.id ? (
+                            <div className="space-y-2 py-2" onClick={(e) => e.stopPropagation()}>
+                              <div className="grid grid-cols-2 gap-2 max-w-md mx-auto">
+                                {staffOptions.length === 0 && (
+                                  <span className="text-xs col-span-2" style={{ color: "var(--text-tertiary)" }}>
+                                    관리자 계정이 없습니다.
+                                  </span>
+                                )}
+                                {staffOptions.map((u) => {
+                                  const currentAssignees = t.assignee_emp_nos || (t.assignee_emp_no ? [t.assignee_emp_no] : []);
+                                  const checked = currentAssignees.includes(u.emp_no);
+                                  return (
+                                    <label key={u.emp_no} className="inline-flex items-center gap-2 text-xs cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        className="h-4 w-4 rounded"
+                                        style={{ accentColor: "var(--color-primary-600)" }}
+                                        checked={checked}
+                                        onChange={() => {
+                                          const next = checked
+                                            ? currentAssignees.filter((empNo) => empNo !== u.emp_no)
+                                            : [...currentAssignees, u.emp_no];
+                                          assignM.mutate({ ticketId: t.id, assigneeEmpNos: next });
+                                        }}
+                                      />
+                                      <span>{formatUser(u, u.emp_no)}</span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                              <button
+                                className="text-xs px-3 py-1 rounded transition-colors font-medium"
+                                style={{
+                                  color: "white",
+                                  backgroundColor: "var(--color-primary-600)",
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
+                                }}
+                                onClick={() => setEditingTicketId(null)}
+                              >
+                                완료
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap items-center justify-center gap-2">
+                              {(() => {
+                                const assignees = t.assignees || [];
+                                const empNos = t.assignee_emp_nos || (t.assignee_emp_no ? [t.assignee_emp_no] : []);
+                                const displayAssignees = assignees.length > 0
+                                  ? assignees
+                                  : staffOptions.filter((u) => empNos.includes(u.emp_no));
+                                
+                                if (displayAssignees.length === 0) {
+                                  return (
+                                    <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+                                      미배정
+                                    </span>
+                                  );
+                                }
+                                
+                                return displayAssignees.map((u) => (
+                                  <span
+                                    key={u.emp_no}
+                                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-medium"
+                                    style={{
+                                      backgroundColor: "var(--color-primary-50)",
+                                      color: "var(--color-primary-700)",
+                                      border: "1px solid var(--color-primary-200)",
+                                    }}
+                                  >
+                                    {formatUser(u, u.emp_no)}
+                                  </span>
+                                ));
+                              })()}
+                              <button
+                                className="text-xs px-2 py-0.5 rounded transition-colors"
+                                style={{
+                                  color: "var(--color-primary-600)",
+                                  backgroundColor: "var(--bg-elevated)",
+                                  border: "1px solid var(--border-default)",
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingTicketId(t.id);
+                                }}
+                              >
+                                편집
+                              </button>
+                            </div>
+                          )}
                         </td>
                         <td className="px-6 py-4 text-center" style={{ color: "var(--text-secondary)" }}>
                           {workTypeLabel(t.work_type)}

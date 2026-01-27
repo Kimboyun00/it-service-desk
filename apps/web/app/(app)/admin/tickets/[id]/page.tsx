@@ -203,6 +203,7 @@ function FieldRow({ label, value }: { label: string; value?: React.ReactNode }) 
         className="col-span-8 text-sm px-4 py-2.5"
         style={{ 
           color: "var(--text-primary)",
+          borderLeft: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))",
         }}
       >
         {value ?? "-"}
