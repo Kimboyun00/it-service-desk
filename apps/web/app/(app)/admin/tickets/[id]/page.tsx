@@ -277,7 +277,6 @@ export default function AdminTicketDetailPage() {
   const [isEditingAssignees, setIsEditingAssignees] = useState(false);
   const [isEditingCategories, setIsEditingCategories] = useState(false);
   const [isEditingWorkType, setIsEditingWorkType] = useState(false);
-  const [isEditingStatus, setIsEditingStatus] = useState(false);
   const commentFileInputRef = useRef<HTMLInputElement | null>(null);
   const commentsEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -600,73 +599,32 @@ export default function AdminTicketDetailPage() {
               <FieldRow
                 label="상태"
                 value={
-                  <div className="space-y-2">
-                    {!isEditingStatus ? (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant={statusInfo.variant} size="md">
-                          {statusInfo.label}
-                        </Badge>
-                        <button
-                          className="text-xs px-2 py-1 rounded transition-colors"
-                          style={{
-                            color: "var(--color-primary-600)",
-                            backgroundColor: "var(--bg-elevated)",
-                            border: "1px solid var(--border-default)",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = "var(--bg-hover)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
-                          }}
-                          onClick={() => setIsEditingStatus(true)}
-                        >
-                          편집
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <div className="space-y-2">
-                          {STATUS_OPTIONS.map((o) => (
-                            <label key={o.value} className="inline-flex items-center gap-2 text-sm cursor-pointer">
-                              <input
-                                type="radio"
-                                className="h-4 w-4"
-                                style={{ accentColor: "var(--color-primary-600)" }}
-                                checked={status === o.value}
-                                onChange={() => {
-                                  setStatus(o.value);
-                                  updateStatusM.mutate(o.value);
-                                }}
-                              />
-                              <span>{o.label}</span>
-                            </label>
-                          ))}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            className="text-xs px-3 py-1 rounded transition-colors font-medium"
-                            style={{
-                              color: "white",
-                              backgroundColor: "var(--color-primary-600)",
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
-                            }}
-                            onClick={() => setIsEditingStatus(false)}
-                          >
-                            완료
-                          </button>
-                          {updateStatusM.isError && (
-                            <div className="text-xs" style={{ color: "var(--color-danger-600)" }}>
-                              상태 변경에 실패했습니다.
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      value={status}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setStatus(v);
+                        updateStatusM.mutate(v);
+                      }}
+                      className="text-sm px-3 py-1.5 rounded-lg border"
+                      style={{
+                        backgroundColor: "var(--bg-elevated)",
+                        borderColor: "var(--border-default)",
+                        color: "var(--text-primary)",
+                        minWidth: "120px",
+                      }}
+                    >
+                      {STATUS_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                    {updateStatusM.isError && (
+                      <span className="text-xs" style={{ color: "var(--color-danger-600)" }}>
+                        상태 변경에 실패했습니다.
+                      </span>
                     )}
                   </div>
                 }
@@ -956,22 +914,6 @@ export default function AdminTicketDetailPage() {
                     ) : (
                       <div className="space-y-2">
                         <div className="space-y-2">
-                          <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
-                            <input
-                              type="radio"
-                              className="h-4 w-4"
-                              style={{ accentColor: "var(--color-primary-600)" }}
-                              checked={!workType}
-                              onChange={() => {
-                                setWorkType("");
-                                updateMetaM.mutate({
-                                  category_ids: categoryIds,
-                                  work_type: null,
-                                });
-                              }}
-                            />
-                            <span>선택 안 함</span>
-                          </label>
                           {WORK_TYPE_OPTIONS.map((o) => (
                             <label key={o.value} className="inline-flex items-center gap-2 text-sm cursor-pointer">
                               <input

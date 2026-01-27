@@ -432,7 +432,14 @@ export default function TicketDetailPage() {
                 style={{ backgroundColor: "var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
               />
               <FieldRow label="요청자" value={formatUser(t.requester, t.requester_emp_no)} />
-              <FieldRow label="프로젝트" value={t.project_name ?? "-"} />
+              <FieldRow
+                label="상태"
+                value={
+                  <Badge variant={statusInfo.variant} size="md">
+                    {statusInfo.label}
+                  </Badge>
+                }
+              />
             </div>
             <div 
               className="relative grid grid-cols-1 md:grid-cols-2"
@@ -444,9 +451,47 @@ export default function TicketDetailPage() {
               />
               <FieldRow
                 label="담당자"
-                value={formatAssignees(t.assignees, t.assignee_emp_nos ?? null)}
+                value={
+                  (t.assignees?.length ?? 0) > 0 ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {t.assignees!.map((u) => (
+                        <span
+                          key={u.emp_no}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium"
+                          style={{
+                            backgroundColor: "var(--color-primary-50)",
+                            color: "var(--color-primary-700)",
+                            border: "1px solid var(--color-primary-200)",
+                          }}
+                        >
+                          {formatUser(u, u.emp_no)}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (t.assignee_emp_nos?.length ?? 0) > 0 ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {t.assignee_emp_nos!.map((empNo) => (
+                        <span
+                          key={empNo}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium"
+                          style={{
+                            backgroundColor: "var(--color-primary-50)",
+                            color: "var(--color-primary-700)",
+                            border: "1px solid var(--color-primary-200)",
+                          }}
+                        >
+                          {empNo}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+                      미배정
+                    </span>
+                  )
+                }
               />
-              <FieldRow label="생성일" value={formatDate(t.created_at)} />
+              <FieldRow label="프로젝트" value={t.project_name ?? "-"} />
             </div>
             <div 
               className="relative grid grid-cols-1 md:grid-cols-2"
@@ -458,12 +503,31 @@ export default function TicketDetailPage() {
               />
               <FieldRow
                 label="카테고리"
-                value={formatCategoryList(
-                  t.category_ids ?? (t.category_id ? [t.category_id] : []),
-                  categoryMap,
-                )}
+                value={
+                  (() => {
+                    const ids = t.category_ids ?? (t.category_id ? [t.category_id] : []);
+                    if (!ids.length) return <span className="text-sm" style={{ color: "var(--text-tertiary)" }}>-</span>;
+                    return (
+                      <div className="flex flex-wrap items-center gap-2">
+                        {ids.map((id) => (
+                          <span
+                            key={id}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium"
+                            style={{
+                              backgroundColor: "var(--color-info-50)",
+                              color: "var(--color-info-700)",
+                              border: "1px solid var(--color-info-200)",
+                            }}
+                          >
+                            {categoryMap[id] ?? String(id)}
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  })()
+                }
               />
-              <FieldRow label="" value="" />
+              <FieldRow label="생성일" value={formatDate(t.created_at)} />
             </div>
             <div 
               className="relative grid grid-cols-1 md:grid-cols-2"
