@@ -99,7 +99,7 @@ nextjs-portal,
   margin-top: 0.75rem;
 }
 
-/* 댓글용 컴팩트 스타일 */
+/* 답변용 컴팩트 스타일 */
 .tiptap-comment .ProseMirror {
   min-height: auto;
   line-height: 1.4;

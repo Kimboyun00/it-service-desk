@@ -16,7 +16,7 @@ function resolvePageTitle(pathname: string) {
   if (pathname.startsWith("/tickets/review")) return "사업 검토";
   if (pathname.startsWith("/tickets/drafts")) return "임시 보관함";
   if (/^\/tickets\/\d+\/edit$/.test(pathname)) return "요청 수정";
-  if (/^\/tickets\/\d+\/comments\/new$/.test(pathname)) return "댓글 등록";
+  if (/^\/tickets\/\d+\/comments\/new$/.test(pathname)) return "답변 등록";
   if (/^\/tickets\/\d+$/.test(pathname)) return "요청 상세";
   if (pathname === "/admin") return "관리자 대시보드";
   if (pathname.startsWith("/admin/users")) return "사용자 관리";

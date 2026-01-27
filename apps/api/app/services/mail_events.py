@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from ..models.ticket import Ticket
 from ..models.user import User
@@ -269,14 +269,14 @@ def notify_requester_commented(
     for admin in admins:
         status_label = _status_label(ticket.status)
         priority_label = _priority_label(ticket.priority)
-        summary = "요청에 댓글이 등록되었습니다."
+        summary = "요청에 답변이 등록되었습니다."
         subject = _build_subject(summary)
         fields = [
             ("요청 제목", ticket.title),
             ("카테고리", _category_value(ticket, category_label)),
             ("작업 구분", _work_type_value(ticket, work_type_label)),
             ("요청자", requester_label),
-            ("댓글 제목", comment.title or "-"),
+            ("답변 제목", comment.title or "-"),
         ]
         enqueue_comment_mail(
             event_key=f"comment_requester:admin:{ticket.id}:{comment.id}:{admin.emp_no}",
@@ -285,7 +285,7 @@ def notify_requester_commented(
             comment=comment,
             recipient=_admin_target(admin),
             subject=subject,
-            alert_type="요청자 댓글",
+            alert_type="요청자 답변",
             summary=summary,
             fields=fields,
             status_label=status_label,
@@ -304,14 +304,14 @@ def notify_admin_commented(
 ) -> None:
     status_label = _status_label(ticket.status)
     priority_label = _priority_label(ticket.priority)
-    summary = "담당자가 댓글을 등록했습니다."
+    summary = "담당자가 답변을 등록했습니다."
     subject = _build_subject(summary)
     fields = [
         ("요청 제목", ticket.title),
         ("카테고리", _category_value(ticket, category_label)),
         ("작업 구분", _work_type_value(ticket, work_type_label)),
         ("담당자", _user_label(author, author.emp_no)),
-        ("댓글 제목", comment.title or "-"),
+        ("답변 제목", comment.title or "-"),
     ]
     enqueue_comment_mail(
         event_key=f"comment_admin:requester:{ticket.id}:{comment.id}:{requester.emp_no}",
@@ -320,7 +320,7 @@ def notify_admin_commented(
         comment=comment,
         recipient=_requester_target(requester),
         subject=subject,
-        alert_type="담당자 댓글",
+        alert_type="담당자 답변",
         summary=summary,
         fields=fields,
         status_label=status_label,

@@ -68,7 +68,7 @@ export default function NewTicketCommentPage() {
       router.replace(`/tickets/${ticketId}`);
     },
     onError: (err: any) => {
-      setError(err?.message ?? "댓글 등록에 실패했습니다.");
+      setError(err?.message ?? "답변 등록에 실패했습니다.");
     },
   });
 
@@ -112,7 +112,7 @@ export default function NewTicketCommentPage() {
 
   return (
     <div className="p-5 space-y-5">
-      <PageHeader title="댓글 등록" />
+      <PageHeader title="답변 등록" />
 
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="flex items-center gap-2">
@@ -138,7 +138,7 @@ export default function NewTicketCommentPage() {
                   setIsDirty(true);
                   setTitle(e.target.value);
                 }}
-                placeholder="댓글 제목을 입력하세요."
+                placeholder="답변 제목을 입력하세요."
                 maxLength={200}
                 required
               />
@@ -224,7 +224,7 @@ export default function NewTicketCommentPage() {
               setBody(doc);
             }}
             onError={setError}
-            placeholder="댓글 내용을 입력하세요."
+            placeholder="답변 내용을 입력하세요."
           />
         </div>
 

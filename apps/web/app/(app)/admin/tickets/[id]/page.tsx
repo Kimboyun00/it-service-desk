@@ -425,7 +425,7 @@ export default function AdminTicketDetailPage() {
       const created = await api<{ id: number }>(`/tickets/${ticketId}/comments`, {
         method: "POST",
         body: {
-          title: "댓글",
+          title: "답변",
           body: commentBody,
           notify_email: commentNotifyEmail,
         },
@@ -452,7 +452,7 @@ export default function AdminTicketDetailPage() {
       }, 100);
     },
     onError: (err: any) => {
-      setCommentError("댓글 등록에 실패했습니다.");
+      setCommentError("답변 등록에 실패했습니다.");
     },
   });
 
@@ -1030,7 +1030,7 @@ export default function AdminTicketDetailPage() {
                 className="text-sm text-center py-8"
                 style={{ color: "var(--text-tertiary)" }}
               >
-                아직 댓글이 없습니다. 첫 번째 댓글을 작성해보세요.
+                아직 답변이 없습니다. 첫 번째 답변을 작성해보세요.
               </div>
             </CardBody>
           </Card>
@@ -1048,7 +1048,7 @@ export default function AdminTicketDetailPage() {
                           className="text-sm font-semibold"
                           style={{ color: "var(--text-primary)" }}
                         >
-                          RE: {index > 0 ? `(${index + 1})` : ""} 댓글
+                          RE: {index > 0 ? `(${index + 1})` : ""} 답변
                         </span>
                         <span 
                           className="text-xs px-2 py-0.5 rounded"
@@ -1146,7 +1146,7 @@ export default function AdminTicketDetailPage() {
               className="text-base font-semibold"
               style={{ color: "var(--text-primary)" }}
             >
-              새 댓글 작성
+              새 답변 작성
             </h2>
           </CardHeader>
           <CardBody padding="lg">
@@ -1155,7 +1155,7 @@ export default function AdminTicketDetailPage() {
                 value={commentBody}
                 onChange={(doc) => setCommentBody(doc)}
                 onError={setCommentError}
-                placeholder="댓글을 입력하세요..."
+                placeholder="답변을 입력하세요..."
                 showToolbar={false}
                 minHeight="100px"
               />
@@ -1232,7 +1232,7 @@ export default function AdminTicketDetailPage() {
                   onClick={() => {
                     setCommentError(null);
                     if (isEmptyDoc(commentBody)) {
-                      setCommentError("댓글 내용을 입력하세요.");
+                      setCommentError("답변 내용을 입력하세요.");
                       return;
                     }
                     createCommentM.mutate();

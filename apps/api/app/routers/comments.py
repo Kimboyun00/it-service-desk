@@ -129,7 +129,7 @@ def create_comment(
                     )
         except Exception:
             logger = logging.getLogger(__name__)
-            logger.exception("댓글 메일 발송 처리 실패 (comment_id=%s)", comment.id)
+            logger.exception("답변 메일 발송 처리 실패 (comment_id=%s)", comment.id)
 
     return CommentOut(
         id=comment.id,

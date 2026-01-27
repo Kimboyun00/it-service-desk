@@ -140,7 +140,7 @@ def list_notifications(
             created_at = comment.created_at or ticket.updated_at or ticket.created_at
             if not created_at:
                 continue
-            snippet = comment.title or "댓글이 등록되었습니다."
+            snippet = comment.title or "답변이 등록되었습니다."
             items.append(
                 NotificationOut(
                     id=f"comment:{comment.id}",
@@ -192,7 +192,7 @@ def list_notifications(
             created_at = comment.created_at or ticket.updated_at or ticket.created_at
             if not created_at:
                 continue
-            snippet = comment.title or "댓글이 등록되었습니다."
+            snippet = comment.title or "답변이 등록되었습니다."
             items.append(
                 NotificationOut(
                     id=f"comment:{comment.id}",

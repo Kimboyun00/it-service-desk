@@ -20,8 +20,8 @@ function typeLabel(type: string) {
     assignee_assigned: "담당자 배정",
     assignee_changed: "담당자 변경",
     requester_updated: "요청 수정",
-    requester_commented: "요청자 댓글",
-    staff_commented: "담당자 댓글",
+    requester_commented: "요청자 답변",
+    staff_commented: "담당자 답변",
     new_ticket: "새 요청",
   };
   return map[type] ?? type;
