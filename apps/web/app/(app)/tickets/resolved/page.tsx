@@ -10,6 +10,8 @@ import ErrorDialog from "@/components/ErrorDialog";
 import { Badge, Card, CardHeader, CardBody } from "@/components/ui";
 import { Search } from "lucide-react";
 
+type BadgeVariant = "default" | "primary" | "success" | "warning" | "danger" | "info" | "neutral";
+
 type Ticket = {
   id: number;
   title: string;
@@ -85,7 +87,7 @@ function workTypeLabel(value?: string | null) {
   return map[value] ?? value;
 }
 
-function statusMeta(status: string) {
+function statusMeta(status: string): { label: string; variant: BadgeVariant } {
   const s = status.toLowerCase();
   if (["open", "new", "pending"].includes(s)) {
     return { label: "대기", variant: "info" };
