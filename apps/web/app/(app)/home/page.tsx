@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -272,13 +272,24 @@ export default function HomePage() {
   }
 
   function handleProjectSelect(selected: Project) {
-    setProject(selected);
-    setIsDirty(true);
-    setForm((prev) => ({
-      ...prev,
-      project_id: selected.id,
-      category_ids: prev.project_id === selected.id ? prev.category_ids : [],
-    }));
+    // Toggle: if already selected, deselect it
+    if (project?.id === selected.id) {
+      setProject(null);
+      setIsDirty(true);
+      setForm((prev) => ({
+        ...prev,
+        project_id: null,
+        category_ids: [],
+      }));
+    } else {
+      setProject(selected);
+      setIsDirty(true);
+      setForm((prev) => ({
+        ...prev,
+        project_id: selected.id,
+        category_ids: prev.project_id === selected.id ? prev.category_ids : [],
+      }));
+    }
   }
 
   function clearProject() {
@@ -629,7 +640,7 @@ export default function HomePage() {
                       <div className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
                         카테고리 (복수 선택 가능)
                       </div>
-                      <div className="grid grid-cols-1 gap-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {sortedCategories.map((category) => {
                           const isSelected = form.category_ids.includes(category.id);
                           return (
