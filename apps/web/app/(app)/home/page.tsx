@@ -405,7 +405,7 @@ export default function HomePage() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
-        <div className="w-full max-w-4xl">
+        <div className="w-full max-w-5xl">
           {/* Step Content */}
           <div className="min-h-[400px] animate-fadeIn">
             {currentStep === "welcome" && (
