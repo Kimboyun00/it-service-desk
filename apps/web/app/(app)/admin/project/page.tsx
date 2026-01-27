@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useMe } from "@/lib/auth-context";
@@ -14,6 +14,7 @@ type Project = {
   end_date?: string | null;
   created_by_emp_no: string;
   created_at: string;
+  sort_order: number;
 };
 
 export default function AdminProjectPage() {
@@ -23,11 +24,53 @@ export default function AdminProjectPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [localProjects, setLocalProjects] = useState<Project[]>([]);
+  const [draggingId, setDraggingId] = useState<number | null>(null);
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ["projects-admin"],
     queryFn: () => api<Project[]>("/projects?mine=false"),
   });
+
+  useEffect(() => {
+    setLocalProjects(projects);
+  }, [projects]);
+
+  const reorderProjectsM = useMutation({
+    mutationFn: (orderedIds: number[]) =>
+      api("/projects/reorder", {
+        method: "POST",
+        body: { project_ids: orderedIds },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["projects-admin"] });
+    },
+  });
+
+  function handleDragStart(id: number) {
+    setDraggingId(id);
+  }
+
+  function handleDragOver(e: React.DragEvent<HTMLDivElement>, overId: number) {
+    e.preventDefault();
+    if (draggingId === null || draggingId === overId) return;
+    setLocalProjects((prev) => {
+      const currentIndex = prev.findIndex((p) => p.id === draggingId);
+      const overIndex = prev.findIndex((p) => p.id === overId);
+      if (currentIndex === -1 || overIndex === -1) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(currentIndex, 1);
+      next.splice(overIndex, 0, moved);
+      return next;
+    });
+  }
+
+  function handleDrop() {
+    if (draggingId === null) return;
+    setDraggingId(null);
+    if (localProjects.length === 0) return;
+    reorderProjectsM.mutate(localProjects.map((p) => p.id));
+  }
 
   const createProjectM = useMutation({
     mutationFn: () =>
@@ -135,15 +178,22 @@ export default function AdminProjectPage() {
           프로젝트 목록
         </div>
         {isLoading && <div className="p-4 text-sm text-slate-500">불러오는 중...</div>}
-        {!isLoading && projects.length === 0 && (
+        {!isLoading && localProjects.length === 0 && (
           <div className="p-4 text-sm text-slate-500">등록된 프로젝트가 없습니다.</div>
         )}
-        {!isLoading && projects.length > 0 && (
+        {!isLoading && localProjects.length > 0 && (
           <div className="divide-y divide-slate-200">
-            {projects.map((p) => (
-              <div key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+            {localProjects.map((p) => (
+              <div
+                key={p.id}
+                className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 cursor-move"
+                draggable
+                onDragStart={() => handleDragStart(p.id)}
+                onDragOver={(e) => handleDragOver(e, p.id)}
+                onDrop={handleDrop}
+              >
                 <div>
-                  <div className="text-sm font-semibold text-slate-900">[프로젝트] {p.name}</div>
+                  <div className="text-sm font-semibold text-slate-900">{p.name}</div>
                   <div className="text-xs text-slate-500">
                     {p.start_date ?? "-"} ~ {p.end_date ?? "-"}
                   </div>

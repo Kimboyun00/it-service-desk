@@ -92,7 +92,7 @@ export default function ProjectPickerModal({ open, selectedId, onClose, onSelect
                   }`}
                   onClick={() => onSelect(p)}
                 >
-                  <div className="text-sm font-medium text-gray-900">[프로젝트] {p.name}</div>
+                  <div className="text-sm font-medium text-gray-900">{p.name}</div>
                   <div className="text-xs text-gray-500">{formatPeriod(p)}</div>
                 </button>
               ))}

@@ -1,6 +1,6 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import select, desc
+from sqlalchemy import select
 
 from ..db import get_session
 from ..core.current_user import get_current_user
@@ -8,8 +8,13 @@ from ..models.project import Project
 from ..models.project_member import ProjectMember
 from ..models.user import User
 from ..schemas.project import ProjectCreateIn, ProjectOut
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/projects", tags=["projects"])
+
+
+class ProjectReorderIn(BaseModel):
+    project_ids: list[int]
 
 
 @router.get("", response_model=list[ProjectOut])
@@ -26,7 +31,8 @@ def list_projects(
         )
     if query:
         stmt = stmt.where(Project.name.ilike(f"%{query.strip()}%"))
-    stmt = stmt.order_by(desc(Project.id))
+    # 프로젝트는 정렬 순서와 생성 순서 기준으로 노출
+    stmt = stmt.order_by(Project.sort_order.asc(), Project.id.asc())
     return list(session.scalars(stmt).all())
 
 
@@ -70,6 +76,26 @@ def delete_project(
         raise HTTPException(status_code=409, detail="Protected project cannot be deleted")
     session.query(ProjectMember).filter(ProjectMember.project_id == project_id).delete()
     session.delete(project)
+    session.commit()
+    return {"ok": True}
+
+
+@router.post("/reorder")
+def reorder_projects(
+    payload: ProjectReorderIn,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    # 전달된 ID 순서대로 sort_order 갱신
+    for index, project_id in enumerate(payload.project_ids):
+        project = session.get(Project, project_id)
+        if not project:
+            continue
+        project.sort_order = index + 1
+
     session.commit()
     return {"ok": True}
 

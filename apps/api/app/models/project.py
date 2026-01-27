@@ -13,3 +13,5 @@ class Project(Base):
     end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     created_by_emp_no: Mapped[str] = mapped_column(String(50), ForeignKey("users.emp_no"))
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # 프로젝트 노출 순서 (작을수록 위에 표시)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, server_default="999")

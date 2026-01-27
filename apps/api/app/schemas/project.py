@@ -15,6 +15,7 @@ class ProjectOut(BaseModel):
     end_date: date | None = None
     created_by_emp_no: str
     created_at: datetime
+    sort_order: int
 
     class Config:
         from_attributes = True

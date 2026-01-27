@@ -679,7 +679,7 @@ export default function TicketDetailPage() {
                           className="text-sm font-semibold"
                           style={{ color: "var(--text-primary)" }}
                         >
-                          RE: {index > 0 ? `(${index + 1})` : ""} 답변
+                          답변
                         </span>
                         <span 
                           className="text-xs px-2 py-0.5 rounded"

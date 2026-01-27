@@ -309,7 +309,7 @@ export default function EditTicketPage() {
               <div className="text-xs text-gray-600">
                 {project ? (
                   <>
-                    <span>[프로젝트] {project.name}</span>
+                    <span>{project.name}</span>
                     {(project.start_date || project.end_date) && (
                       <span className="ml-2 text-[11px] text-gray-500">
                         {project.start_date ?? "-"} ~ {project.end_date ?? "-"}

@@ -620,7 +620,7 @@ export default function HomePage() {
                             )}
                             <div>
                               <div className="text-base font-medium" style={{ color: "var(--text-primary)" }}>
-                                [프로젝트] {p.name}
+                                {p.name}
                               </div>
                               {(p.start_date || p.end_date) && (
                                 <div className="text-xs" style={{ color: "var(--text-tertiary)" }}>
@@ -879,7 +879,7 @@ export default function HomePage() {
                             프로젝트
                           </p>
                           <p className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-                            [프로젝트] {project.name}
+                            {project.name}
                           </p>
                         </div>
                       </>
