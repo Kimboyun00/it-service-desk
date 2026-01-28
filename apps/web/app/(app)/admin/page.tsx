@@ -268,6 +268,26 @@ function kstDayDiff(a: Date, b: Date) {
   return Math.floor((kstMidnightTs(a) - kstMidnightTs(b)) / DAY_MS);
 }
 
+function kstMonthStartTs(date: Date) {
+  const kst = new Date(date.getTime() + KST_OFFSET_MS);
+  return Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), 1) - KST_OFFSET_MS;
+}
+
+function filterTicketsByDonutRange<T extends { created_at?: string | null }>(items: T[], range: "daily" | "monthly" | "all"): T[] {
+  if (range === "all" || !items.length) return items;
+  const now = new Date();
+  const todayStart = kstMidnightTs(now);
+  const monthStart = kstMonthStartTs(now);
+  const nextMonthStart = new Date(monthStart);
+  nextMonthStart.setUTCMonth(nextMonthStart.getUTCMonth() + 1);
+  const nextMonthStartTs = nextMonthStart.getTime();
+  return items.filter((t) => {
+    const ts = t.created_at ? new Date(t.created_at).getTime() : 0;
+    if (range === "daily") return ts >= todayStart;
+    return ts >= monthStart && ts < nextMonthStartTs;
+  });
+}
+
 function formatWeekKey(d: Date) {
   const copy = new Date(d);
   const day = copy.getDay();
@@ -276,11 +296,58 @@ function formatWeekKey(d: Date) {
   return `${copy.getFullYear()}-${String(copy.getMonth() + 1).padStart(2, "0")}-${String(copy.getDate()).padStart(2, "0")}`;
 }
 
+function donutRangeButtons(
+  range: "daily" | "monthly" | "all",
+  setRange: (r: "daily" | "monthly" | "all") => void
+) {
+  return (
+    <div
+      className="inline-flex rounded-lg border p-1"
+      style={{
+        borderColor: "var(--border-default)",
+        backgroundColor: "var(--bg-subtle)",
+      }}
+    >
+      {(["daily", "monthly", "all"] as const).map((r) => (
+        <button
+          key={r}
+          type="button"
+          onClick={() => setRange(r)}
+          className="rounded-md px-3 py-1.5 text-sm font-semibold transition-all"
+          style={{
+            backgroundColor: range === r ? "var(--color-primary-600)" : "transparent",
+            color: range === r ? "white" : "var(--text-secondary)",
+          }}
+          onMouseEnter={(e) => {
+            if (range !== r) {
+              e.currentTarget.style.backgroundColor = "var(--bg-card)";
+              e.currentTarget.style.color = "var(--text-primary)";
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (range !== r) {
+              e.currentTarget.style.backgroundColor = "transparent";
+              e.currentTarget.style.color = "var(--text-secondary)";
+            }
+          }}
+        >
+          {r === "daily" ? "일별" : r === "monthly" ? "월별" : "전체"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const me = useMe();
   const router = useRouter();
   const { categories, map: categoryMap } = useTicketCategories();
   const [range, setRange] = useState<"daily" | "weekly" | "monthly">("daily");
+  const [donutRangeWorkType, setDonutRangeWorkType] = useState<"daily" | "monthly" | "all">("daily");
+  const [donutRangeStatus, setDonutRangeStatus] = useState<"daily" | "monthly" | "all">("daily");
+  const [donutRangeTitle, setDonutRangeTitle] = useState<"daily" | "monthly" | "all">("daily");
+  const [donutRangeDept, setDonutRangeDept] = useState<"daily" | "monthly" | "all">("daily");
+  const [donutRangeCategory, setDonutRangeCategory] = useState<"daily" | "monthly" | "all">("daily");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (me.role !== "admin") {
@@ -370,51 +437,81 @@ export default function AdminDashboard() {
     };
   }, [data]);
 
-  const categoryChartData = useMemo(() => {
-    if (categories.length) {
-      return categories.map((category) => {
-        const base = stats.byCategory[category.id] ?? 0;
-        const value = category.code === "etc" ? base + (stats.unknownCategory ?? 0) : base;
-        return { label: category.name, value };
-      });
-    }
-    return Object.entries(stats.byCategory).map(([key, value]) => ({
-      label: categoryMap[Number(key)] ?? key,
-      value,
-    }));
-  }, [stats.byCategory, stats.unknownCategory, categoryMap, categories]);
+  const workTypeFiltered = useMemo(() => filterTicketsByDonutRange(data ?? [], donutRangeWorkType), [data, donutRangeWorkType]);
+  const statusFiltered = useMemo(() => filterTicketsByDonutRange(data ?? [], donutRangeStatus), [data, donutRangeStatus]);
+  const titleFiltered = useMemo(() => filterTicketsByDonutRange(data ?? [], donutRangeTitle), [data, donutRangeTitle]);
+  const deptFiltered = useMemo(() => filterTicketsByDonutRange(data ?? [], donutRangeDept), [data, donutRangeDept]);
+  const categoryFiltered = useMemo(() => filterTicketsByDonutRange(data ?? [], donutRangeCategory), [data, donutRangeCategory]);
 
-  const statusChartData = [
-    { label: "대기", value: stats.byStatus.open },
-    { label: "진행", value: stats.byStatus.in_progress },
-    { label: "완료", value: stats.byStatus.resolved },
-    { label: "사업 검토", value: stats.byStatus.closed },
-  ];
+  const workTypeChartData = useMemo(() => {
+    const byWorkType = { incident: 0, request: 0, change: 0, other: 0 };
+    workTypeFiltered.forEach((t) => {
+      const wt = (t.work_type ?? "other") as keyof typeof byWorkType;
+      if (wt in byWorkType) byWorkType[wt] += 1;
+      else byWorkType.other += 1;
+    });
+    return [
+      { label: "장애", value: byWorkType.incident },
+      { label: "요청", value: byWorkType.request },
+      { label: "변경", value: byWorkType.change },
+      { label: "기타", value: byWorkType.other },
+    ];
+  }, [workTypeFiltered]);
 
-  const workTypeChartData = [
-    { label: "장애", value: stats.byWorkType.incident },
-    { label: "요청", value: stats.byWorkType.request },
-    { label: "변경", value: stats.byWorkType.change },
-    { label: "기타", value: stats.byWorkType.other },
-  ];
+  const statusChartData = useMemo(() => {
+    const byStatus = { open: 0, in_progress: 0, resolved: 0, closed: 0 };
+    statusFiltered.forEach((t) => {
+      const s = (t.status || "").toLowerCase();
+      if (s === "open") byStatus.open++;
+      else if (s === "in_progress") byStatus.in_progress++;
+      else if (s === "resolved") byStatus.resolved++;
+      else if (s === "closed") byStatus.closed++;
+    });
+    return [
+      { label: "대기", value: byStatus.open },
+      { label: "진행", value: byStatus.in_progress },
+      { label: "완료", value: byStatus.resolved },
+      { label: "사업 검토", value: byStatus.closed },
+    ];
+  }, [statusFiltered]);
 
   const requesterTitleChartData = useMemo(() => {
     const byTitle: Record<string, number> = {};
-    (data ?? []).forEach((t) => {
+    titleFiltered.forEach((t) => {
       const label = (t.requester?.title ?? "").trim() || "미기재";
       byTitle[label] = (byTitle[label] ?? 0) + 1;
     });
     return Object.entries(byTitle).map(([label, value]) => ({ label, value }));
-  }, [data]);
+  }, [titleFiltered]);
 
   const requesterDepartmentChartData = useMemo(() => {
     const byDept: Record<string, number> = {};
-    (data ?? []).forEach((t) => {
+    deptFiltered.forEach((t) => {
       const label = (t.requester?.department ?? "").trim() || "미기재";
       byDept[label] = (byDept[label] ?? 0) + 1;
     });
     return Object.entries(byDept).map(([label, value]) => ({ label, value }));
-  }, [data]);
+  }, [deptFiltered]);
+
+  const categoryChartData = useMemo(() => {
+    const byCategory: Record<number, number> = {};
+    let unknownCategory = 0;
+    categoryFiltered.forEach((t) => {
+      if (t.category_id == null) unknownCategory += 1;
+      else byCategory[t.category_id] = (byCategory[t.category_id] ?? 0) + 1;
+    });
+    if (categories.length) {
+      return categories.map((category) => {
+        const base = byCategory[category.id] ?? 0;
+        const value = category.code === "etc" ? base + unknownCategory : base;
+        return { label: category.name, value };
+      });
+    }
+    return Object.entries(byCategory).map(([key, value]) => ({
+      label: categoryMap[Number(key)] ?? key,
+      value,
+    }));
+  }, [categoryFiltered, categoryMap, categories]);
 
   const timeSeriesData = useMemo(() => {
     const tickets = data ?? [];
@@ -563,26 +660,56 @@ export default function AdminDashboard() {
       </ChartCard>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ChartCard title="작업 유형" subtitle="요청 유형별 분류" icon={<Wrench className="w-5 h-5" />} className="min-h-[360px]">
+        <ChartCard
+          title="작업 유형"
+          subtitle="요청 유형별 분류"
+          icon={<Wrench className="w-5 h-5" />}
+          className="min-h-[360px]"
+          action={donutRangeButtons(donutRangeWorkType, setDonutRangeWorkType)}
+        >
           <DonutChart data={workTypeChartData} />
         </ChartCard>
 
-        <ChartCard title="상태" subtitle="요청 상태별 분류" icon={<ClipboardList className="w-5 h-5" />} className="min-h-[360px]">
+        <ChartCard
+          title="상태"
+          subtitle="요청 상태별 분류"
+          icon={<ClipboardList className="w-5 h-5" />}
+          className="min-h-[360px]"
+          action={donutRangeButtons(donutRangeStatus, setDonutRangeStatus)}
+        >
           <DonutChart data={statusChartData} />
         </ChartCard>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ChartCard title="직급" subtitle="요청자 직급별 분류류" icon={<UserCircle className="w-5 h-5" />} className="min-h-[360px]">
+        <ChartCard
+          title="직급"
+          subtitle="요청자 직급별 분류"
+          icon={<UserCircle className="w-5 h-5" />}
+          className="min-h-[360px]"
+          action={donutRangeButtons(donutRangeTitle, setDonutRangeTitle)}
+        >
           <DonutChart data={requesterTitleChartData} />
         </ChartCard>
-        <ChartCard title="부서" subtitle="요청자 부서별 분류류" icon={<Building2 className="w-5 h-5" />} className="min-h-[360px]">
+        <ChartCard
+          title="부서"
+          subtitle="요청자 부서별 분류"
+          icon={<Building2 className="w-5 h-5" />}
+          className="min-h-[360px]"
+          action={donutRangeButtons(donutRangeDept, setDonutRangeDept)}
+        >
           <DonutChart data={requesterDepartmentChartData} />
         </ChartCard>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
-        <ChartCard title="카테고리" subtitle="서비스 유형별 분류류" icon={<PieChartIcon className="w-5 h-5" />} className="lg:col-span-3 min-h-[360px]">
+        <ChartCard
+          title="카테고리"
+          subtitle="서비스 유형별 분류"
+          icon={<PieChartIcon className="w-5 h-5" />}
+          className="lg:col-span-3 min-h-[360px]"
+          action={donutRangeButtons(donutRangeCategory, setDonutRangeCategory)}
+        >
           <DonutChart data={categoryChartData} />
         </ChartCard>
 

@@ -464,6 +464,26 @@ export default function AdminTicketDetailPage() {
     setCommentFiles((prev) => prev.filter((_, i) => i != idx));
   }
 
+  const filteredEvents = useMemo(() => {
+    const evs = data?.events ?? [];
+    return evs.filter((e) =>
+      ["ticket_created", "assignee_assigned", "assignee_changed", "status_changed"].includes(e.type)
+    );
+  }, [data?.events]);
+
+  const resolvedAt = useMemo(() => {
+    const evs = (data?.events ?? []).filter(
+      (e) => e.type === "status_changed" && e.to_value === "resolved"
+    );
+    if (evs.length === 0) return null;
+    const sorted = [...evs].sort(
+      (a, b) =>
+        new Date((b as { created_at?: string }).created_at ?? 0).getTime() -
+        new Date((a as { created_at?: string }).created_at ?? 0).getTime()
+    );
+    return sorted[0]?.created_at ?? null;
+  }, [data?.events]);
+
   if (!isTicketIdValid) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -519,26 +539,6 @@ export default function AdminTicketDetailPage() {
   const attachments = data.attachments ?? [];
   const comments = data.comments ?? [];
   const ticketAttachments = attachments.filter((a) => !a.comment_id);
-  const events = data.events ?? [];
-
-  // Filter events to only show relevant types
-  const filteredEvents = useMemo(() => {
-    return events.filter((e) => 
-      ["ticket_created", "assignee_assigned", "assignee_changed", "status_changed"].includes(e.type)
-    );
-  }, [events]);
-
-  // 완료일: 상태가 '완료'(resolved)일 때만, status_changed → resolved 이벤트 중 가장 최근 시각
-  const resolvedAt = useMemo(() => {
-    const evs = (data?.events ?? []).filter(
-      (e) => e.type === "status_changed" && e.to_value === "resolved"
-    );
-    if (evs.length === 0) return null;
-    const sorted = [...evs].sort(
-      (a, b) => new Date((b as { created_at?: string }).created_at ?? 0).getTime() - new Date((a as { created_at?: string }).created_at ?? 0).getTime()
-    );
-    return sorted[0]?.created_at ?? null;
-  }, [data?.events]);
 
   return (
     <>

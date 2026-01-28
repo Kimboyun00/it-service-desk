@@ -128,7 +128,13 @@ export default function RichTextEditor({
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div
+      className="rounded-xl border shadow-sm"
+      style={{
+        backgroundColor: "var(--bg-input)",
+        borderColor: "var(--border-default)",
+      }}
+    >
       {!readOnly && (
         <div className="relative">
           <EditorToolbar
@@ -150,7 +156,7 @@ export default function RichTextEditor({
       <div className="relative px-4 py-3" style={minHeight ? { minHeight } : undefined}>
         <EditorContent editor={editor} className="tiptap" />
         {placeholder && isEmptyDoc(editor.getJSON() as TiptapDoc) && (
-          <div className="pointer-events-none absolute left-4 top-3 text-sm text-gray-400">{placeholder}</div>
+          <div className="pointer-events-none absolute left-4 top-3 text-sm" style={{ color: "var(--text-tertiary)" }}>{placeholder}</div>
         )}
       </div>
 
@@ -166,7 +172,7 @@ export default function RichTextEditor({
         }}
       />
 
-      {!readOnly && uploading && <div className="px-4 pb-3 text-xs text-gray-500">이미지 업로드 중...</div>}
+      {!readOnly && uploading && <div className="px-4 pb-3 text-xs" style={{ color: "var(--text-tertiary)" }}>이미지 업로드 중...</div>}
     </div>
   );
 }

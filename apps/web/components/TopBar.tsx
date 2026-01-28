@@ -75,7 +75,10 @@ export default function TopBar() {
             <path d="M13.73 21a2 2 0 01-3.46 0" />
           </svg>
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 rounded-full bg-danger-600 text-white text-[10px] min-w-[18px] h-[18px] flex items-center justify-center px-1 font-medium shadow-sm">
+            <span
+              className="absolute -top-1 -right-1 rounded-full text-[10px] min-w-[18px] h-[18px] flex items-center justify-center px-1 font-medium shadow-sm"
+              style={{ backgroundColor: "var(--color-danger-600)", color: "#fff" }}
+            >
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           )}

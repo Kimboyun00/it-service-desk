@@ -330,20 +330,6 @@ export default function AdminTicketsPage() {
         icon={<Inbox className="w-7 h-7" />}
         actions={
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
-              <input
-                className="border rounded-lg pl-10 pr-3 py-2 text-sm w-72 transition-colors"
-                style={{
-                  backgroundColor: "var(--bg-input)",
-                  borderColor: "var(--border-default)",
-                  color: "var(--text-primary)",
-                }}
-                placeholder="제목/요청자 검색"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
             <div className="flex items-center gap-1 rounded-lg border overflow-hidden" style={{ borderColor: "var(--border-default)" }}>
               {(["all", "pending", "resolved", "closed"] as const).map((f) => (
                 <button
@@ -359,6 +345,20 @@ export default function AdminTicketsPage() {
                   {f === "all" ? "전체" : f === "pending" ? "대기,진행" : f === "resolved" ? "완료" : "사업검토"}
                 </button>
               ))}
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
+              <input
+                className="border rounded-lg pl-10 pr-3 py-2 text-sm w-72 transition-colors"
+                style={{
+                  backgroundColor: "var(--bg-input)",
+                  borderColor: "var(--border-default)",
+                  color: "var(--text-primary)",
+                }}
+                placeholder="제목/요청자 검색"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
           </div>
         }
