@@ -1,4 +1,4 @@
-﻿"""add ticket category order and none project
+"""add ticket category order and none project
 
 Revision ID: c2d7b1a4e9f0
 Revises: 7c8e4a9b1f2c, d2b9f9f0a3b1
@@ -144,26 +144,8 @@ def upgrade() -> None:
             {"code": code, "name": name, "description": name, "sort_order": order},
         )
 
-    existing = conn.execute(
-        sa.text("select id from projects where name = :name"),
-        {"name": "없음"},
-    ).scalar()
-    if not existing:
-        admin_emp_no = conn.execute(
-            sa.text("select emp_no from users where role = 'admin' order by emp_no limit 1")
-        ).scalar()
-        if not admin_emp_no:
-            admin_emp_no = "admin"
-        conn.execute(
-            sa.text(
-                "insert into projects (name, start_date, end_date, created_by_emp_no, created_at) "
-                "values (:name, null, null, :emp_no, now())"
-            ),
-            {"name": "없음", "emp_no": admin_emp_no},
-        )
+    # 기본 "없음" 프로젝트는 더 이상 생성하지 않음 (제거됨)
 
 
 def downgrade() -> None:
-    conn = op.get_bind()
-    conn.execute(sa.text("delete from projects where name = :name"), {"name": "없음"})
     op.drop_column("ticket_categories", "sort_order")

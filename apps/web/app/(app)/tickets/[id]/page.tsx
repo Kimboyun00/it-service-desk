@@ -602,16 +602,10 @@ export default function TicketDetailPage() {
             </h2>
           </CardHeader>
           <CardBody padding="lg">
-            <div 
-              className="rounded-lg border p-4 text-sm"
-              style={{ 
-                borderColor: "var(--border-default)",
-                backgroundColor: "var(--bg-subtle)"
-              }}
-            >
+            <div className="prose max-w-none text-sm" style={{ color: "var(--text-primary)" }}>
               <TiptapViewer value={t.description} />
             </div>
-            
+
             {ticketAttachments.length > 0 && (
               <>
                 <div 

@@ -6,7 +6,7 @@ import os
 from .routers import auth, health, tickets, comments, uploads, attachments, me, admin_users, notices, faqs, ticket_categories, projects, users, draft_tickets, notifications, contact_assignments
 from .models.user import Base
 from .db import engine, SessionLocal
-from .core.seed import seed_users, seed_ticket_categories
+from .core.seed import seed_ticket_categories
 from .core.settings import settings
 from .core.user_sync import start_user_sync_thread
 from .services.mail_service import start_mail_worker_thread
@@ -47,9 +47,8 @@ def on_startup():
             conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()"))
             conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()"))
 
-        # Seed default admin account.
+        # Seed ticket categories only. admin/test 등 기본 사용자는 생성하지 않음.
         with SessionLocal() as session:
-            seed_users(session)
             seed_ticket_categories(session)
 
     # Start periodic user sync (if enabled).

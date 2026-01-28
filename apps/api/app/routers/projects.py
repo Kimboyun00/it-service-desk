@@ -98,8 +98,6 @@ def delete_project(
     project = session.get(Project, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    if project.name == "없음":
-        raise HTTPException(status_code=409, detail="Protected project cannot be deleted")
     session.query(ProjectMember).filter(ProjectMember.project_id == project_id).delete()
     session.delete(project)
     session.commit()

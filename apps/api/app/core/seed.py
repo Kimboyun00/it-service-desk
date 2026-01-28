@@ -1,59 +1,8 @@
-﻿from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session
 from sqlalchemy import select
-import os
 
-from ..models.user import User
 from ..models.ticket_category import TicketCategory
 from ..models.ticket import Ticket
-from .security import hash_password_sha256_b64
-
-
-def seed_users(session: Session) -> None:
-    """
-    DEV 기본 사용자 시드.
-    - 동일 사번이 있으면 업데이트합니다.
-    - 기본 관리자 계정만 생성합니다.
-    """
-
-    admin_employee_no = os.getenv("ADMIN_EMPLOYEE_NO", "admin")
-    admin_password = os.getenv("ADMIN_PASSWORD", "admin1234!@")
-    seeds = [
-        {
-            "emp_no": admin_employee_no,
-            "password": admin_password,
-            "role": "admin",
-            "is_verified": True,
-            "kor_name": "관리자",
-            "title": "관리자",
-            "department": "전산2팀",
-        },
-    ]
-
-    for s in seeds:
-        exists = session.scalar(select(User).where(User.emp_no == s["emp_no"]))
-
-        if exists:
-            exists.role = s["role"]
-            exists.is_verified = s["is_verified"]
-            exists.emp_no = s["emp_no"]
-            exists.kor_name = s.get("kor_name")
-            exists.title = s.get("title")
-            exists.department = s.get("department")
-            exists.password = hash_password_sha256_b64(s["password"])
-            continue
-
-        u = User(
-            emp_no=s["emp_no"],
-            password=hash_password_sha256_b64(s["password"]),
-            role=s["role"],
-            is_verified=s["is_verified"],
-            kor_name=s.get("kor_name"),
-            title=s.get("title"),
-            department=s.get("department"),
-        )
-        session.add(u)
-
-    session.commit()
 
 
 def seed_ticket_categories(session: Session) -> None:

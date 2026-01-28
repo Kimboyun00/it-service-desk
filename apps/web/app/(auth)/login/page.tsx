@@ -106,7 +106,7 @@ function LoginForm() {
           </div>
 
           <div className="space-y-2">
-            <label className="sr-only">Id</label>
+            <label className="sr-only">ID</label>
             <input
               className="w-full rounded-lg border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
               style={{
