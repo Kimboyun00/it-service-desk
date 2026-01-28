@@ -27,7 +27,18 @@ import {
   Building2,
   UserCircle
 } from "lucide-react";
-import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import {
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  AreaChart as RechartsAreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from "recharts";
 
 type Ticket = {
   id: number;
@@ -162,6 +173,7 @@ function DonutChart({ data }: { data: { label: string; value: number }[] }) {
   );
 }
 
+/** 요청 추이 분석용 영역 차트. Ignite UI 영역 차트 스타일: Y축 0 시작, 반투명 영역, 두꺼운 선, 마커 강조 */
 function AreaChart({
   labels,
   values,
@@ -171,156 +183,75 @@ function AreaChart({
   values: number[];
   color?: string;
 }) {
-  const height = 240;
-  const padding = 24;
-  const max = Math.max(1, ...values);
-  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
-  const [gridColor, setGridColor] = useState("var(--border-subtle)");
-  const [width, setWidth] = useState(800);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const hoverRef = useRef<number | null>(null);
-  const rafRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const update = () => setWidth(el.clientWidth);
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const updateGridColor = () => {
-      const computed = getComputedStyle(document.documentElement).getPropertyValue("--border-subtle").trim();
-      setGridColor(computed);
-    };
-    updateGridColor();
-    const observer = new MutationObserver(updateGridColor);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => observer.disconnect();
-  }, []);
-
-  const points = values.map((v, i) => {
-    const x = padding + (i / Math.max(1, values.length - 1)) * (width - padding * 2);
-    const y = height - padding - (v / max) * (height - padding * 2);
-    return { x, y };
-  });
-
-  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
-  const areaPath = `${linePath} L ${width - padding},${height - padding} L ${padding},${height - padding} Z`;
+  const chartData = useMemo(
+    () => labels.map((name, i) => ({ name, value: values[i] ?? 0 })),
+    [labels, values]
+  );
+  const maxVal = Math.max(1, ...values);
 
   return (
-    <div ref={containerRef} className="relative w-full">
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        className="h-64 w-full"
-        preserveAspectRatio="xMidYMid meet"
-        onMouseMove={(e) => {
-          if (points.length === 0) return;
-          const target = e.currentTarget;
-          const rect = target.getBoundingClientRect();
-          const x = ((e.clientX - rect.left) / rect.width) * width;
-          if (rafRef.current) cancelAnimationFrame(rafRef.current);
-          rafRef.current = requestAnimationFrame(() => {
-            let nearest = 0;
-            let min = Number.POSITIVE_INFINITY;
-            for (let i = 0; i < points.length; i += 1) {
-              const dist = Math.abs(points[i].x - x);
-              if (dist < min) {
-                min = dist;
-                nearest = i;
-              }
-            }
-            if (hoverRef.current !== nearest) {
-              hoverRef.current = nearest;
-              setHoverIdx(nearest);
-            }
-          });
-        }}
-        onMouseLeave={() => {
-          hoverRef.current = null;
-          setHoverIdx(null);
-        }}
-      >
-        <defs>
-          <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.3" />
-            <stop offset="100%" stopColor={color} stopOpacity="0.05" />
-          </linearGradient>
-        </defs>
-
-        {[0, 0.25, 0.5, 0.75, 1].map((ratio) => (
-          <line
-            key={ratio}
-            x1={padding}
-            x2={width - padding}
-            y1={height - padding - ratio * (height - padding * 2)}
-            y2={height - padding - ratio * (height - padding * 2)}
-            stroke={gridColor}
-            strokeWidth="1"
-            strokeDasharray="4 4"
-          />
-        ))}
-
-        <path d={areaPath} fill="url(#areaGradient)" className="transition-opacity" />
-        <path d={linePath} fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-
-        {points.map((p, i) => (
-          <circle
-            key={i}
-            cx={p.x}
-            cy={p.y}
-            r={hoverIdx === i ? 6 : 3}
-            style={{ fill: "var(--bg-card)" }}
-            stroke={color}
-            strokeWidth="3"
-            className="transition-all"
-          />
-        ))}
-
-        {hoverIdx !== null && (
-          <>
-            <line
-              x1={points[hoverIdx].x}
-              y1={padding}
-              x2={points[hoverIdx].x}
-              y2={height - padding}
-              stroke={color}
-              strokeWidth="2"
-              strokeDasharray="4 4"
-              opacity="0.5"
-            />
-            <circle cx={points[hoverIdx].x} cy={points[hoverIdx].y} r="8" fill={color} opacity="0.2" />
-          </>
-        )}
-      </svg>
-
-      {hoverIdx !== null && points[hoverIdx] ? (
-        <div
-          className="absolute z-10 -translate-x-1/2 -translate-y-full rounded-lg border px-4 py-2 shadow-xl pointer-events-none transition-colors"
-          style={{
-            left: `${(points[hoverIdx].x / width) * 100}%`,
-            top: `${(points[hoverIdx].y / height) * 100}%`,
-            backgroundColor: "var(--bg-card)",
-            borderColor: "var(--border-default)",
-          }}
+    <div className="w-full" style={{ height: 280 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <RechartsAreaChart
+          data={chartData}
+          margin={{ top: 12, right: 12, left: 8, bottom: 8 }}
         >
-          <div className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
-            {values[hoverIdx]}건
-          </div>
-          <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
-            {labels[hoverIdx]}
-          </div>
-        </div>
-      ) : null}
-
-      <div className="mt-3 flex justify-between px-2 text-xs" style={{ color: "var(--text-tertiary)" }}>
-        <span>{labels[0]}</span>
-        <span>{labels[Math.floor(labels.length / 2)]}</span>
-        <span>{labels[labels.length - 1]}</span>
-      </div>
+          <defs>
+            <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+              <stop offset="100%" stopColor={color} stopOpacity={0.08} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid
+            strokeDasharray="4 4"
+            vertical={false}
+            stroke="var(--border-subtle)"
+          />
+          <XAxis
+            dataKey="name"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 12, fill: "var(--text-tertiary)" }}
+            interval="preserveStartEnd"
+          />
+          <YAxis
+            domain={[0, maxVal]}
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 12, fill: "var(--text-tertiary)" }}
+            tickFormatter={(v) => String(v)}
+          />
+          <Tooltip
+            content={({ active, payload }) =>
+              active && payload?.[0] ? (
+                <div
+                  className="rounded-lg border px-3 py-2 shadow-md"
+                  style={{
+                    backgroundColor: "var(--bg-card)",
+                    borderColor: "var(--border-default)",
+                  }}
+                >
+                  <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                    {payload[0].payload.name}
+                  </div>
+                  <div className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
+                    {payload[0].value}건
+                  </div>
+                </div>
+              ) : null
+            }
+          />
+          <Area
+            type="monotone"
+            dataKey="value"
+            stroke={color}
+            strokeWidth={2.5}
+            fill="url(#areaFill)"
+            dot={{ fill: "var(--bg-card)", stroke: color, strokeWidth: 2, r: 4 }}
+            activeDot={{ r: 5, strokeWidth: 2, fill: "var(--bg-card)", stroke: color }}
+          />
+        </RechartsAreaChart>
+      </ResponsiveContainer>
     </div>
   );
 }
