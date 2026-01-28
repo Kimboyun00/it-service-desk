@@ -30,7 +30,6 @@ export default function TopBar() {
   const { notifications, unreadCount, isLoading, markAllRead } = useNotifications();
   const [notifOpen, setNotifOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [criteriaOpen, setCriteriaOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement | null>(null);
 
   const items = useMemo(() => notifications.slice(0, 20), [notifications]);
@@ -155,48 +154,6 @@ export default function TopBar() {
                   </div>
                 </button>
               ))}
-            </div>
-            <div
-              className="border-t"
-              style={{ borderColor: "var(--border-default)" }}
-            >
-              <button
-                type="button"
-                onClick={() => setCriteriaOpen((o) => !o)}
-                className="w-full px-4 py-2.5 text-left text-xs font-medium flex items-center justify-between transition-colors"
-                style={{ color: "var(--text-tertiary)" }}
-              >
-                알림이 달리는 기준
-                <span className="text-[10px]">{criteriaOpen ? "▲" : "▼"}</span>
-              </button>
-              {criteriaOpen && (
-                <div
-                  className="px-4 pb-4 pt-1 text-xs space-y-2"
-                  style={{ color: "var(--text-secondary)" }}
-                >
-                  <div className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
-                    SMTP 메일 알림과 동일한 조건입니다.
-                  </div>
-                  {isStaff ? (
-                    <>
-                      <div className="font-medium" style={{ color: "var(--text-primary)" }}>담당자(관리자)</div>
-                      <ul className="list-disc list-inside space-y-1 pl-0.5">
-                        <li><strong>신규 요청 접수</strong> — 내 담당 카테고리에 요청이 등록된 경우</li>
-                        <li><strong>요청자 답변</strong> — 내가 담당자인 요청에 요청자가 답변한 경우</li>
-                      </ul>
-                    </>
-                  ) : (
-                    <>
-                      <div className="font-medium" style={{ color: "var(--text-primary)" }}>요청자</div>
-                      <ul className="list-disc list-inside space-y-1 pl-0.5">
-                        <li><strong>요청 접수</strong> — 내가 신청한 요청이 접수된 경우</li>
-                        <li><strong>상태 변경</strong> — 요청 상태가 변경된 경우</li>
-                        <li><strong>담당자 답변</strong> — 담당자가 답변을 등록한 경우</li>
-                      </ul>
-                    </>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         )}
