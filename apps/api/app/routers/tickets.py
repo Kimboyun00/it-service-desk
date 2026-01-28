@@ -28,7 +28,6 @@ from ..core.settings import settings
 from ..core.storage import delete_object
 from ..services.assignment_service import get_category_admins
 from ..services.mail_events import (
-    notify_admin_assigned,
     notify_admins_ticket_created,
     notify_requester_status_changed,
     notify_requester_ticket_created,
@@ -166,6 +165,18 @@ def create_ticket(
     session.flush()
     for category_id in category_ids:
         session.add(TicketCategoryLink(ticket_id=t.id, category_id=category_id))
+    # 카테고리에 지정된 담당자를 해당 요청의 담당자로 자동 배정
+    assignee_emp_nos: list[str] = []
+    seen: set[str] = set()
+    for cid in category_ids:
+        for admin_user in get_category_admins(session, cid):
+            if admin_user.emp_no not in seen:
+                seen.add(admin_user.emp_no)
+                assignee_emp_nos.append(admin_user.emp_no)
+    for emp_no in assignee_emp_nos:
+        session.add(TicketAssignee(ticket_id=t.id, emp_no=emp_no))
+    if assignee_emp_nos:
+        t.assignee_emp_no = assignee_emp_nos[0]
     session.commit()
     session.refresh(t)
     ev = TicketEvent(
@@ -179,9 +190,11 @@ def create_ticket(
     session.add(ev)
     session.commit()
     user_ids: set[str] = {t.requester_emp_no}
+    user_ids.update(assignee_emp_nos)
     users = build_user_map(session, user_ids)
     project_ids: set[int] = {t.project_id} if t.project_id else set()
     projects = build_project_map(session, project_ids)
+    assignee_map = {t.id: assignee_emp_nos} if assignee_emp_nos else {}
 
     try:
         category_label = categories[0].name
@@ -193,7 +206,7 @@ def create_ticket(
         logger = logging.getLogger(__name__)
         logger.exception("티켓 접수 메일 발송 처리 실패 (ticket_id=%s)", t.id)
 
-    return serialize_ticket(t, users, projects, {t.id: category_ids}, {})
+    return serialize_ticket(t, users, projects, {t.id: category_ids}, assignee_map)
 
 
 @router.get("/{ticket_id}", response_model=TicketOut)
@@ -591,14 +604,6 @@ def assign_ticket(
     )
     session.add(ev)
     session.commit()
-
-    try:
-        if assignee:
-            category_label = get_category_label(session, ticket.category_id)
-            notify_admin_assigned(ticket, assignee, category_label=category_label)
-    except Exception:
-        logger = logging.getLogger(__name__)
-        logger.exception("담당자 변경 메일 발송 처리 실패 (ticket_id=%s)", ticket_id)
 
     return {"ok": True, "from": old, "to": assignee_emp_no}
 

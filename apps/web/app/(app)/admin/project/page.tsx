@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useMe } from "@/lib/auth-context";
 import PageHeader from "@/components/PageHeader";
-import { Folder } from "lucide-react";
+import { Folder, ChevronDown, ChevronRight, Pencil } from "lucide-react";
 
 type Project = {
   id: number;
@@ -17,6 +17,17 @@ type Project = {
   sort_order: number;
 };
 
+function startOfToday() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function isPastProject(p: Project): boolean {
+  if (!p.end_date) return false;
+  return new Date(p.end_date) < startOfToday();
+}
+
 export default function AdminProjectPage() {
   const me = useMe();
   const qc = useQueryClient();
@@ -26,15 +37,27 @@ export default function AdminProjectPage() {
   const [error, setError] = useState<string | null>(null);
   const [localProjects, setLocalProjects] = useState<Project[]>([]);
   const [draggingId, setDraggingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState<{ name: string; start_date: string; end_date: string } | null>(null);
+  const [pastOpen, setPastOpen] = useState(false);
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ["projects-admin"],
     queryFn: () => api<Project[]>("/projects?mine=false"),
   });
 
+  const activeProjects = useMemo(
+    () => projects.filter((p) => !isPastProject(p)),
+    [projects]
+  );
+  const pastProjects = useMemo(
+    () => projects.filter((p) => isPastProject(p)),
+    [projects]
+  );
+
   useEffect(() => {
-    setLocalProjects(projects);
-  }, [projects]);
+    setLocalProjects(activeProjects);
+  }, [activeProjects]);
 
   const reorderProjectsM = useMutation({
     mutationFn: (orderedIds: number[]) =>
@@ -94,15 +117,71 @@ export default function AdminProjectPage() {
     },
   });
 
+  const updateProjectM = useMutation({
+    mutationFn: ({
+      id,
+      name,
+      start_date,
+      end_date,
+    }: {
+      id: number;
+      name: string;
+      start_date: string;
+      end_date: string;
+    }) =>
+      api<Project>(`/projects/${id}`, {
+        method: "PATCH",
+        body: {
+          name: name.trim() || undefined,
+          start_date: start_date || null,
+          end_date: end_date || null,
+        },
+      }),
+    onSuccess: () => {
+      setEditingId(null);
+      setEditForm(null);
+      qc.invalidateQueries({ queryKey: ["projects-admin"] });
+    },
+    onError: (err: unknown) => {
+      setError(err instanceof Error ? err.message : "프로젝트 수정에 실패했습니다.");
+    },
+  });
+
   const deleteProjectM = useMutation({
     mutationFn: (projectId: number) =>
       api(`/projects/${projectId}`, {
         method: "DELETE",
       }),
     onSuccess: () => {
+      setEditingId(null);
+      setEditForm(null);
       qc.invalidateQueries({ queryKey: ["projects-admin"] });
     },
   });
+
+  function openEdit(p: Project) {
+    setEditingId(p.id);
+    setEditForm({
+      name: p.name,
+      start_date: p.start_date ?? "",
+      end_date: p.end_date ?? "",
+    });
+    setError(null);
+  }
+
+  function saveEdit() {
+    if (!editingId || !editForm) return;
+    if (!editForm.name.trim()) {
+      setError("프로젝트명을 입력하세요.");
+      return;
+    }
+    updateProjectM.mutate({
+      id: editingId,
+      name: editForm.name,
+      start_date: editForm.start_date,
+      end_date: editForm.end_date,
+    });
+  }
 
   if (me.role !== "admin") {
     return (
@@ -178,7 +257,7 @@ export default function AdminProjectPage() {
           프로젝트 목록
         </div>
         {isLoading && <div className="p-4 text-sm text-slate-500">불러오는 중...</div>}
-        {!isLoading && localProjects.length === 0 && (
+        {!isLoading && localProjects.length === 0 && pastProjects.length === 0 && (
           <div className="p-4 text-sm text-slate-500">등록된 프로젝트가 없습니다.</div>
         )}
         {!isLoading && localProjects.length > 0 && (
@@ -192,25 +271,197 @@ export default function AdminProjectPage() {
                 onDragOver={(e) => handleDragOver(e, p.id)}
                 onDrop={handleDrop}
               >
-                <div>
-                  <div className="text-sm font-semibold text-slate-900">{p.name}</div>
-                  <div className="text-xs text-slate-500">
-                    {p.start_date ?? "-"} ~ {p.end_date ?? "-"}
+                {editingId === p.id && editForm ? (
+                  <div className="flex flex-wrap items-end gap-3 flex-1 min-w-0">
+                    <div className="flex-1 min-w-[120px]">
+                      <label className="text-xs text-slate-600">프로젝트명</label>
+                      <input
+                        className="mt-0.5 w-full rounded border border-slate-200 px-2 py-1.5 text-sm"
+                        value={editForm.name}
+                        onChange={(e) => setEditForm((f) => (f ? { ...f, name: e.target.value } : f))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-600">시작일</label>
+                      <input
+                        type="date"
+                        className="mt-0.5 rounded border border-slate-200 px-2 py-1.5 text-sm"
+                        value={editForm.start_date}
+                        onChange={(e) => setEditForm((f) => (f ? { ...f, start_date: e.target.value } : f))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-600">종료일</label>
+                      <input
+                        type="date"
+                        className="mt-0.5 rounded border border-slate-200 px-2 py-1.5 text-sm"
+                        value={editForm.end_date}
+                        onChange={(e) => setEditForm((f) => (f ? { ...f, end_date: e.target.value } : f))}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="rounded-lg border border-slate-900 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white"
+                        onClick={saveEdit}
+                        disabled={updateProjectM.isPending}
+                      >
+                        저장
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700"
+                        onClick={() => {
+                          setEditingId(null);
+                          setEditForm(null);
+                          setError(null);
+                        }}
+                      >
+                        취소
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <button
-                  type="button"
-                  className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600"
-                  onClick={() => {
-                    if (!confirm("해당 프로젝트를 삭제하시겠습니까?")) return;
-                    deleteProjectM.mutate(p.id);
-                  }}
-                  disabled={deleteProjectM.isPending}
-                >
-                  삭제
-                </button>
+                ) : (
+                  <>
+                    <div>
+                      <div className="text-sm font-semibold text-slate-900">{p.name}</div>
+                      <div className="text-xs text-slate-500">
+                        {p.start_date ?? "-"} ~ {p.end_date ?? "-"}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 inline-flex items-center gap-1"
+                        onClick={() => openEdit(p)}
+                        disabled={!!editingId}
+                      >
+                        <Pencil className="w-3 h-3" />
+                        수정
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600"
+                        onClick={() => {
+                          if (!confirm("해당 프로젝트를 삭제하시겠습니까?")) return;
+                          deleteProjectM.mutate(p.id);
+                        }}
+                        disabled={deleteProjectM.isPending}
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
+          </div>
+        )}
+
+        {!isLoading && pastProjects.length > 0 && (
+          <div className="border-t border-slate-200">
+            <button
+              type="button"
+              className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+              onClick={() => setPastOpen((o) => !o)}
+            >
+              <span>지난 프로젝트</span>
+              {pastOpen ? (
+                <ChevronDown className="w-4 h-4 shrink-0 text-slate-500" />
+              ) : (
+                <ChevronRight className="w-4 h-4 shrink-0 text-slate-500" />
+              )}
+            </button>
+            {pastOpen && (
+              <div className="divide-y divide-slate-200 border-t border-slate-100">
+                {pastProjects.map((p) => (
+                  <div key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-slate-50/50">
+                    {editingId === p.id && editForm ? (
+                      <div className="flex flex-wrap items-end gap-3 flex-1 min-w-0">
+                        <div className="flex-1 min-w-[120px]">
+                          <label className="text-xs text-slate-600">프로젝트명</label>
+                          <input
+                            className="mt-0.5 w-full rounded border border-slate-200 px-2 py-1.5 text-sm"
+                            value={editForm.name}
+                            onChange={(e) => setEditForm((f) => (f ? { ...f, name: e.target.value } : f))}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-slate-600">시작일</label>
+                          <input
+                            type="date"
+                            className="mt-0.5 rounded border border-slate-200 px-2 py-1.5 text-sm"
+                            value={editForm.start_date}
+                            onChange={(e) => setEditForm((f) => (f ? { ...f, start_date: e.target.value } : f))}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-slate-600">종료일</label>
+                          <input
+                            type="date"
+                            className="mt-0.5 rounded border border-slate-200 px-2 py-1.5 text-sm"
+                            value={editForm.end_date}
+                            onChange={(e) => setEditForm((f) => (f ? { ...f, end_date: e.target.value } : f))}
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            className="rounded-lg border border-slate-900 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white"
+                            onClick={saveEdit}
+                            disabled={updateProjectM.isPending}
+                          >
+                            저장
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700"
+                            onClick={() => {
+                              setEditingId(null);
+                              setEditForm(null);
+                              setError(null);
+                            }}
+                          >
+                            취소
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <div className="text-sm font-semibold text-slate-900">{p.name}</div>
+                          <div className="text-xs text-slate-500">
+                            {p.start_date ?? "-"} ~ {p.end_date ?? "-"}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 inline-flex items-center gap-1"
+                            onClick={() => openEdit(p)}
+                            disabled={!!editingId}
+                          >
+                            <Pencil className="w-3 h-3" />
+                            수정
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600"
+                            onClick={() => {
+                              if (!confirm("해당 프로젝트를 삭제하시겠습니까?")) return;
+                              deleteProjectM.mutate(p.id);
+                            }}
+                            disabled={deleteProjectM.isPending}
+                          >
+                            삭제
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

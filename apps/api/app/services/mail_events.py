@@ -194,37 +194,6 @@ def notify_requester_assignee_changed(
     )
 
 
-def notify_admin_assigned(
-    ticket: Ticket,
-    assignee: User,
-    category_label: str | None = None,
-    work_type_label: str | None = None,
-) -> None:
-    status_label = _status_label(ticket.status)
-    priority_label = _priority_label(ticket.priority)
-    summary = "요청 담당자로 배정되었습니다."
-    subject = _build_subject(summary)
-    fields = [
-        ("요청 제목", ticket.title),
-        ("카테고리", _category_value(ticket, category_label)),
-        ("작업 구분", _work_type_value(ticket, work_type_label)),
-        ("담당자", _assignee_label(assignee)),
-    ]
-    enqueue_ticket_mail(
-        event_key=f"assignee_assigned:admin:{ticket.id}:{assignee.emp_no}",
-        event_type="assignee_assigned",
-        ticket=ticket,
-        recipient=_admin_target(assignee),
-        subject=subject,
-        alert_type="담당자 배정",
-        summary=summary,
-        fields=fields,
-        status_label=status_label,
-        priority_label=priority_label,
-        is_admin_link=True,
-    )
-
-
 def notify_requester_status_changed(
     ticket: Ticket,
     requester: User,

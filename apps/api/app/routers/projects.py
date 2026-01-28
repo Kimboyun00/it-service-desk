@@ -7,7 +7,7 @@ from ..core.current_user import get_current_user
 from ..models.project import Project
 from ..models.project_member import ProjectMember
 from ..models.user import User
-from ..schemas.project import ProjectCreateIn, ProjectOut
+from ..schemas.project import ProjectCreateIn, ProjectOut, ProjectUpdateIn
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -58,6 +58,32 @@ def create_project(
     session.commit()
     session.refresh(project)
 
+    return project
+
+
+@router.patch("/{project_id}", response_model=ProjectOut)
+def update_project(
+    project_id: int,
+    payload: ProjectUpdateIn,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Forbidden")
+    project = session.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    data = payload.model_dump(exclude_unset=True)
+    if "name" in data and data["name"] is not None:
+        project.name = data["name"].strip()
+    if "start_date" in data:
+        project.start_date = data["start_date"]
+    if "end_date" in data:
+        project.end_date = data["end_date"]
+    if project.start_date and project.end_date and project.start_date > project.end_date:
+        raise HTTPException(status_code=422, detail="Invalid project period")
+    session.commit()
+    session.refresh(project)
     return project
 
 

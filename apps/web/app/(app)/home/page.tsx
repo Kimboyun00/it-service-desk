@@ -163,12 +163,14 @@ export default function HomePage() {
     };
   }, []);
 
+  // API(sort_order) 순서 유지. "없음"만 맨 앞으로, 나머지는 admin/project에서 정한 순서 그대로 사용
   const activeProjects = useMemo(() => {
     const filtered = projects.filter(isProjectActive);
+    const orderMap = new Map(projects.map((p, i) => [p.id, i]));
     return [...filtered].sort((a, b) => {
       if (a.name === "없음") return -1;
       if (b.name === "없음") return 1;
-      return a.name.localeCompare(b.name, "ko");
+      return (orderMap.get(a.id) ?? 9999) - (orderMap.get(b.id) ?? 9999);
     });
   }, [projects]);
 

@@ -8,6 +8,12 @@ class ProjectCreateIn(BaseModel):
     end_date: date | None = None
 
 
+class ProjectUpdateIn(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    start_date: date | None = None
+    end_date: date | None = None
+
+
 class ProjectOut(BaseModel):
     id: int
     name: str
