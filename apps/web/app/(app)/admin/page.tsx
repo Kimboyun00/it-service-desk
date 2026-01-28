@@ -273,6 +273,26 @@ function kstMonthStartTs(date: Date) {
   return Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), 1) - KST_OFFSET_MS;
 }
 
+function kstWeekStartTs(date: Date) {
+  // Monday 00:00 기준 (KST)
+  const kst = new Date(date.getTime() + KST_OFFSET_MS);
+  const dow = kst.getUTCDay(); // KST의 요일
+  const diff = (dow + 6) % 7; // Mon=0, Tue=1, ... Sun=6
+  return (
+    Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate() - diff) - KST_OFFSET_MS
+  );
+}
+
+function formatKstMd(ts: number) {
+  const d = new Date(ts + KST_OFFSET_MS);
+  return `${d.getUTCMonth() + 1}/${d.getUTCDate()}`;
+}
+
+function formatWeekLabel(weekStartTs: number) {
+  const endTs = weekStartTs + 6 * DAY_MS;
+  return `${formatKstMd(weekStartTs)}~${formatKstMd(endTs)}`;
+}
+
 function filterTicketsByDonutRange<T extends { created_at?: string | null }>(items: T[], range: "daily" | "monthly" | "all"): T[] {
   if (range === "all" || !items.length) return items;
   const now = new Date();
@@ -286,14 +306,6 @@ function filterTicketsByDonutRange<T extends { created_at?: string | null }>(ite
     if (range === "daily") return ts >= todayStart;
     return ts >= monthStart && ts < nextMonthStartTs;
   });
-}
-
-function formatWeekKey(d: Date) {
-  const copy = new Date(d);
-  const day = copy.getDay();
-  const diff = (day + 6) % 7;
-  copy.setDate(copy.getDate() - diff);
-  return `${copy.getFullYear()}-${String(copy.getMonth() + 1).padStart(2, "0")}-${String(copy.getDate()).padStart(2, "0")}`;
 }
 
 function donutRangeButtons(
@@ -357,7 +369,7 @@ export default function AdminDashboard() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-dashboard-tickets"],
-    queryFn: () => api<Ticket[]>("/tickets?scope=all&limit=300&offset=0"),
+    queryFn: () => api<Ticket[]>("/tickets?scope=all&limit=1000&offset=0"),
     staleTime: 30_000,
     refetchOnWindowFocus: true,
     refetchInterval: 15_000,
@@ -534,21 +546,23 @@ export default function AdminDashboard() {
         if (idx >= 0 && idx < periods) values[idx]++;
       });
     } else if (range === "weekly") {
-      for (let i = periods - 1; i >= 0; i--) {
-        const d = new Date(now);
-        d.setDate(d.getDate() - i * 7);
-        labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
+      // "주별"은 달력 주(월~일) 기준으로 집계.
+      // 이번 주는 월요일~오늘까지(week-to-date)만 자연스럽게 누적됨.
+      const currentWeekStartTs = kstWeekStartTs(now);
+      const baseWeekStartTs = currentWeekStartTs - (periods - 1) * 7 * DAY_MS;
+
+      for (let i = 0; i < periods; i++) {
+        const weekStartTs = baseWeekStartTs + i * 7 * DAY_MS;
+        labels.push(formatWeekLabel(weekStartTs));
         values.push(0);
       }
+
       tickets.forEach((t) => {
         if (!t.created_at) return;
-        const key = formatWeekKey(new Date(new Date(t.created_at).getTime() + KST_OFFSET_MS));
-        const idx = labels.findIndex((_, i) => {
-          const d = new Date(now);
-          d.setDate(d.getDate() - (periods - 1 - i) * 7);
-          return formatWeekKey(d) === key;
-        });
-        if (idx >= 0) values[idx]++;
+        const createdTs = new Date(t.created_at).getTime();
+        const weekStartTs = kstWeekStartTs(new Date(createdTs));
+        const idx = Math.floor((weekStartTs - baseWeekStartTs) / (7 * DAY_MS));
+        if (idx >= 0 && idx < periods) values[idx]++;
       });
     } else {
       for (let i = periods - 1; i >= 0; i--) {
