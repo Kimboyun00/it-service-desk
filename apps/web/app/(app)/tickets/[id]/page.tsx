@@ -820,7 +820,6 @@ export default function TicketDetailPage() {
             onChange={(doc) => setCommentBody(doc)}
             onError={setCommentError}
             placeholder="답변을 입력하세요..."
-            showToolbar={true}
             minHeight="100px"
           />
 
