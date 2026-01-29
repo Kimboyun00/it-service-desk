@@ -14,7 +14,7 @@ def seed_ticket_categories(session: Session) -> None:
         dict(code="portal", name="포탈", description="포탈", sort_order=30),
         dict(code="dooray", name="두레이", description="두레이", sort_order=40),
         dict(code="vdi_gabia_daas", name="VDI(Gabia DaaS)", description="VDI(Gabia DaaS)", sort_order=50),
-        dict(code="it_service", name="IT 서비스 (컴퓨터, 프린트 등)", description="IT 서비스", sort_order=60),
+        dict(code="it_service", name="IT 서비스 (컴퓨터, 프린터 등)", description="IT 서비스", sort_order=60),
         dict(code="infra", name="인프라", description="인프라", sort_order=70),
         dict(code="etc", name="기타", description="기타", sort_order=80),
     ]
