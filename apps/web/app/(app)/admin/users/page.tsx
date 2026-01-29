@@ -8,7 +8,7 @@ import PageHeader from "@/components/PageHeader";
 import Pagination from "@/components/Pagination";
 import ErrorDialog from "@/components/ErrorDialog";
 import { Card, Badge } from "@/components/ui";
-import { Search, X, UserCog } from "lucide-react";
+import { Search, X, UserCog, Users } from "lucide-react";
 
 type Role = "requester" | "admin";
 type SortDir = "asc" | "desc";
@@ -201,7 +201,7 @@ export default function AdminUsersPage() {
       <PageHeader
         title="사용자 관리"
         subtitle="권한 설정과 기본 정보를 관리합니다."
-        icon="👥"
+        icon={<Users className="w-7 h-7" strokeWidth={2} />}
         actions={
           <div className="relative">
             <Search

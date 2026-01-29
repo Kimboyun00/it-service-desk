@@ -20,6 +20,7 @@ import {
   Wrench,
   ClipboardList,
   PieChart as PieChartIcon,
+  BarChart3,
   Users,
   Bookmark,
   FolderOpen,
@@ -588,7 +589,7 @@ export default function AdminDashboard() {
         eyebrow="Admin Dashboard"
         title="관리자 대시보드"
         subtitle="IT 서비스 요청 현황과 통계를 실시간으로 모니터링합니다."
-        icon="📊"
+        icon={<BarChart3 className="w-7 h-7" strokeWidth={2} />}
       />
 
       <ErrorDialog message={errorMessage} onClose={() => setErrorMessage(null)} />

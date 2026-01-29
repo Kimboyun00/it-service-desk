@@ -330,15 +330,32 @@ export default function AdminTicketsPage() {
         icon={<Inbox className="w-7 h-7" />}
         actions={
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-1 rounded-lg border overflow-hidden" style={{ borderColor: "var(--border-default)" }}>
+            <div
+              className="flex items-center gap-1 rounded-lg border px-1.5 py-1.5"
+              style={{
+                backgroundColor: "var(--bg-elevated)",
+                borderColor: "var(--border-default)",
+                boxShadow: "var(--shadow-sm)",
+              }}
+            >
               {(["all", "pending", "resolved", "closed"] as const).map((f) => (
                 <button
                   key={f}
                   type="button"
-                  className="px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap"
+                  className="px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap"
                   style={{
-                    backgroundColor: statusFilter === f ? "var(--color-primary-100)" : "var(--bg-elevated)",
-                    color: statusFilter === f ? "var(--color-primary-700)" : "var(--text-secondary)",
+                    backgroundColor: statusFilter === f ? "var(--color-primary-600)" : "transparent",
+                    color: statusFilter === f ? "#ffffff" : "var(--text-secondary)",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (statusFilter !== f) {
+                      e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (statusFilter !== f) {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }
                   }}
                   onClick={() => setStatusFilter(f)}
                 >
