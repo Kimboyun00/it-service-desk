@@ -14,6 +14,14 @@ branch_labels = None
 depends_on = None
 
 
+def _has_table(conn, table: str) -> bool:
+    r = conn.execute(
+        sa.text("SELECT 1 FROM information_schema.tables WHERE table_name = :t"),
+        {"t": table},
+    ).scalar()
+    return r is not None
+
+
 def _ensure_category(conn, code: str, name: str, sort_order: int) -> int:
     category_id = conn.execute(
         sa.text("select id from ticket_categories where code = :code"),
@@ -112,11 +120,12 @@ def upgrade() -> None:
             ).bindparams(sa.bindparam("old_ids", expanding=True)),
             {"old_ids": old_ids, "infra_id": infra_id},
         )
-        conn.execute(
-            sa.text("delete from contact_assignments where category_id in :old_ids")
-            .bindparams(sa.bindparam("old_ids", expanding=True)),
-            {"old_ids": old_ids},
-        )
+        if _has_table(conn, "contact_assignments"):
+            conn.execute(
+                sa.text("delete from contact_assignments where category_id in :old_ids")
+                .bindparams(sa.bindparam("old_ids", expanding=True)),
+                {"old_ids": old_ids},
+            )
         conn.execute(
             sa.text("delete from ticket_categories where id in :old_ids").bindparams(
                 sa.bindparam("old_ids", expanding=True)

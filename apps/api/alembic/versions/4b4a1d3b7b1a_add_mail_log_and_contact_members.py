@@ -16,6 +16,14 @@ branch_labels = None
 depends_on = None
 
 
+def _has_table(conn, table: str) -> bool:
+    r = conn.execute(
+        sa.text("SELECT 1 FROM information_schema.tables WHERE table_name = :t"),
+        {"t": table},
+    ).scalar()
+    return r is not None
+
+
 def upgrade() -> None:
     op.create_table(
         "contact_assignment_members",
@@ -65,14 +73,17 @@ def upgrade() -> None:
     op.create_index("ix_mail_logs_status", "mail_logs", ["status"])
     op.create_index("ix_mail_logs_recipient_emp_no", "mail_logs", ["recipient_emp_no"])
 
-    op.execute(
-        """
-        INSERT INTO contact_assignment_members (category_id, emp_no, created_at, updated_at)
-        SELECT category_id, emp_no, NOW(), NOW()
-        FROM contact_assignments
-        WHERE emp_no IS NOT NULL
-        """
-    )
+    # Migrate existing data only when upgrading from old schema (contact_assignments table existed)
+    conn = op.get_bind()
+    if _has_table(conn, "contact_assignments"):
+        op.execute(
+            """
+            INSERT INTO contact_assignment_members (category_id, emp_no, created_at, updated_at)
+            SELECT category_id, emp_no, NOW(), NOW()
+            FROM contact_assignments
+            WHERE emp_no IS NOT NULL
+            """
+        )
 
 
 def downgrade() -> None:
