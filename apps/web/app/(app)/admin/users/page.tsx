@@ -327,7 +327,7 @@ export default function AdminUsersPage() {
             onClick={() => setAdminModalOpen(false)}
           />
           <div
-            className="absolute inset-x-0 top-16 mx-auto w-full max-w-2xl rounded-2xl shadow-xl border"
+            className="absolute inset-x-0 top-16 mx-auto w-full max-w-4xl rounded-2xl shadow-xl border"
             style={{
               backgroundColor: "var(--bg-card)",
               borderColor: "var(--border-default)",
@@ -363,14 +363,14 @@ export default function AdminUsersPage() {
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <div className="text-xs font-semibold mb-2" style={{ color: "var(--text-secondary)" }}>
+                <div className="text-sm font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
                   현재 관리자
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   {admins.map((u) => (
                     <div
                       key={u.emp_no}
-                      className="border rounded-lg px-3 py-2 text-sm"
+                      className="border rounded-lg px-3 py-2 text-sm font-medium"
                       style={{
                         borderColor: "var(--color-success-200)",
                         backgroundColor: "var(--color-success-50)",
@@ -389,7 +389,7 @@ export default function AdminUsersPage() {
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
+                  <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
                     사용자 검색
                   </div>
                   <input
