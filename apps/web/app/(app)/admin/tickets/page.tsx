@@ -152,8 +152,7 @@ function workTypeLabel(value?: string | null) {
 function matchesSearch(t: Ticket, term: string) {
   if (!term) return true;
   const lower = term.toLowerCase();
-  const requester = formatUser(t.requester, t.requester_emp_no, "").toLowerCase();
-  return t.title.toLowerCase().includes(lower) || requester.includes(lower);
+  return t.title.toLowerCase().includes(lower) || String(t.id).includes(term);
 }
 
 export default function AdminTicketsPage() {
@@ -366,13 +365,13 @@ export default function AdminTicketsPage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
               <input
-                className="border rounded-lg pl-10 pr-3 py-2 text-sm w-72 transition-colors"
+                className="border rounded-lg pl-10 pr-3 py-2 text-sm w-80 transition-colors"
                 style={{
                   backgroundColor: "var(--bg-input)",
                   borderColor: "var(--border-default)",
                   color: "var(--text-primary)",
                 }}
-                placeholder="제목/요청자 검색"
+                placeholder="제목/ID 검색"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
