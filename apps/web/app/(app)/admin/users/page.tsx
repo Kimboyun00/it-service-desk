@@ -370,11 +370,17 @@ export default function AdminUsersPage() {
                   {admins.map((u) => (
                     <div
                       key={u.emp_no}
-                      className="border rounded-lg px-3 py-2 text-sm font-medium"
+                      className="border rounded-lg px-3 py-2 text-sm font-medium transition-colors"
                       style={{
-                        borderColor: "var(--color-success-200)",
-                        backgroundColor: "var(--color-success-50)",
-                        color: "var(--color-success-900)",
+                        borderColor: "var(--color-success-500)",
+                        backgroundColor: "rgba(34, 197, 94, 0.15)",
+                        color: "var(--color-success-600)",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "rgba(34, 197, 94, 0.25)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "rgba(34, 197, 94, 0.15)";
                       }}
                     >
                       {displayName(u)} / {u.title ?? "-"}
