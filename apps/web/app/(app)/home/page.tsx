@@ -593,8 +593,7 @@ export default function HomePage() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-3">
-
+                  <div className="min-h-0">
                     {projectLoading && (
                       <div className="rounded-xl border border-dashed px-4 py-3 text-sm" style={{ color: "var(--text-tertiary)" }}>
                         프로젝트를 불러오는 중...
@@ -606,6 +605,7 @@ export default function HomePage() {
                       </div>
                     )}
 
+                    <div className="grid grid-cols-1 gap-3 max-h-[280px] overflow-y-auto pr-1">
                     {activeProjects.map((p) => {
                       const isSelected = project?.id === p.id;
                       return (
@@ -638,6 +638,7 @@ export default function HomePage() {
                         </button>
                       );
                     })}
+                    </div>
                   </div>
 
                   {project ? (
@@ -645,7 +646,7 @@ export default function HomePage() {
                       <div className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
                         카테고리 (복수 선택 가능)
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[280px] overflow-y-auto pr-1">
                         {sortedCategories.map((category) => {
                           const isSelected = form.category_ids.includes(category.id);
                           return (

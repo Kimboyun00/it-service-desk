@@ -104,12 +104,43 @@ function ChartCard({
 const DONUT_PALETTE = ["#2563eb", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#14b8a6", "#64748b", "#f97316"];
 
 function DonutChart({ data }: { data: { label: string; value: number }[] }) {
-  const total = data.reduce((acc, cur) => acc + cur.value, 0);
-  const chartData = data.map((d, i) => ({
-    ...d,
-    name: d.label,
-    fill: DONUT_PALETTE[i % DONUT_PALETTE.length],
-  }));
+  const chartData = useMemo(() => {
+    const filtered = data.filter((d) => d.value > 0);
+    return filtered.map((d, i) => ({
+      ...d,
+      name: d.label,
+      fill: DONUT_PALETTE[i % DONUT_PALETTE.length],
+    }));
+  }, [data]);
+  const total = chartData.reduce((acc, cur) => acc + cur.value, 0);
+
+  if (chartData.length === 0) {
+    return (
+      <div
+        className="flex min-h-[280px] flex-col items-center justify-center rounded-xl border border-dashed py-12 px-6"
+        style={{
+          borderColor: "var(--border-default)",
+          backgroundColor: "var(--bg-elevated)",
+        }}
+      >
+        <div
+          className="mb-3 flex h-14 w-14 items-center justify-center rounded-full"
+          style={{
+            backgroundColor: "var(--color-primary-100)",
+            color: "var(--color-primary-600)",
+          }}
+        >
+          <PieChartIcon className="h-7 w-7" />
+        </div>
+        <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+          데이터가 없습니다
+        </p>
+        <p className="mt-1 text-xs" style={{ color: "var(--text-tertiary)" }}>
+          해당 기간에 요청이 없습니다
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-wrap items-center gap-6">
