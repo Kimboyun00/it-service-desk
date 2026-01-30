@@ -34,8 +34,12 @@ alembic upgrade head
 
 ### 2. Docker Compose (infra)
 
+코드를 `git pull`로 받은 경우, **API 이미지를 다시 빌드한 뒤** 마이그레이션을 실행하세요. (API 코드는 볼륨 마운트가 아니라 이미지에 포함됩니다.)
+
 ```bash
 cd infra
+docker compose build api
+docker compose up -d api
 docker compose exec api alembic upgrade head
 ```
 
