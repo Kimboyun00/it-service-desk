@@ -139,7 +139,7 @@ def upgrade() -> None:
         ("portal", "포탈", 30),
         ("dooray", "두레이", 40),
         ("vdi_gabia_daas", "VDI(Gabia DaaS)", 50),
-        ("it_service", "IT 서비스", 60),
+        ("it_service", "IT 서비스 (컴퓨터, 프린터 등)", 60),
         ("infra", "인프라", 70),
         ("etc", "기타", 80),
     ]
