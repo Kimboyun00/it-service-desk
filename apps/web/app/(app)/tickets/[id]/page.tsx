@@ -331,6 +331,14 @@ export default function TicketDetailPage() {
 
   const currentReopenCreatedAt = bodyTab === "initial" ? null : reopens[bodyTab]?.created_at ?? null;
 
+  // 제목 표시: 최초 요청 탭이면 [재요청] 제거, 재요청 탭이면 [재요청] 추가 (훅은 early return 이전에 호출)
+  const displayTitle = useMemo(() => {
+    const title = data?.ticket?.title ?? "";
+    const baseTitle = title.replace(/^\[재요청\]\s*/, "");
+    if (bodyTab === "initial") return baseTitle;
+    return `[재요청] ${baseTitle}`;
+  }, [data?.ticket?.title, bodyTab]);
+
   const downloadAttachmentM = useMutation({
     mutationFn: async (attachmentId: number) => {
       const { url, filename: apiFilename } = await api<{ url: string; filename?: string }>(`/attachments/${attachmentId}/download-url`);
@@ -455,15 +463,6 @@ export default function TicketDetailPage() {
   const t = data.ticket;
   const statusInfo = statusMeta(t.status);
   const priorityInfo = priorityMeta(t.priority);
-
-  // 제목 표시: 최초 요청 탭이면 [재요청] 제거, 재요청 탭이면 [재요청] 추가
-  const displayTitle = useMemo(() => {
-    const baseTitle = t.title.replace(/^\[재요청\]\s*/, "");
-    if (bodyTab === "initial") {
-      return baseTitle;
-    }
-    return `[재요청] ${baseTitle}`;
-  }, [t.title, bodyTab]);
 
   return (
     <>

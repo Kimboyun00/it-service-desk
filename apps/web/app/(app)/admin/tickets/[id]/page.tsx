@@ -522,6 +522,14 @@ export default function AdminTicketDetailPage() {
     return { initialResolvedAt: initial, reopenResolvedAts: reopenAts };
   }, [data?.events]);
 
+  // 제목 표시: 최초 요청 탭이면 [재요청] 제거, 재요청 탭이면 [재요청] 추가 (훅은 early return 이전에 호출)
+  const displayTitle = useMemo(() => {
+    const title = data?.ticket?.title ?? "";
+    const baseTitle = title.replace(/^\[재요청\]\s*/, "");
+    if (bodyTab === "initial") return baseTitle;
+    return `[재요청] ${baseTitle}`;
+  }, [data?.ticket?.title, bodyTab]);
+
   if (!isTicketIdValid) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -577,15 +585,6 @@ export default function AdminTicketDetailPage() {
   const attachments = data.attachments ?? [];
   const comments = data.comments ?? [];
   const ticketAttachments = attachments.filter((a) => !a.comment_id);
-
-  // 제목 표시: 최초 요청 탭이면 [재요청] 제거, 재요청 탭이면 [재요청] 추가
-  const displayTitle = useMemo(() => {
-    const baseTitle = t.title.replace(/^\[재요청\]\s*/, "");
-    if (bodyTab === "initial") {
-      return baseTitle;
-    }
-    return `[재요청] ${baseTitle}`;
-  }, [t.title, bodyTab]);
 
   return (
     <>
