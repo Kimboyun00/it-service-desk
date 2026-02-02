@@ -246,6 +246,7 @@ function eventLabel(type: string) {
     assignee_assigned: "담당자 지정",
     assignee_changed: "담당자 변경",
     requester_updated: "요청 수정",
+    reopened: "재요청 접수",
   };
   return map[type] ?? type;
 }
@@ -485,7 +486,7 @@ export default function AdminTicketDetailPage() {
   const filteredEvents = useMemo(() => {
     const evs = data?.events ?? [];
     return evs.filter((e) =>
-      ["ticket_created", "assignee_assigned", "assignee_changed", "status_changed"].includes(e.type)
+      ["ticket_created", "assignee_assigned", "assignee_changed", "status_changed", "reopened"].includes(e.type)
     );
   }, [data?.events]);
 
@@ -1462,7 +1463,10 @@ export default function AdminTicketDetailPage() {
                     <tbody>
                       {filteredEvents.map((e, idx) => {
                         const editNote = e.type === "requester_updated" ? parseEditNote(e.note) : null;
-                        const summary = editNote?.summary ?? e.note ?? "-";
+                        const summary =
+                          e.type === "reopened"
+                            ? "재요청이 접수되었습니다."
+                            : editNote?.summary ?? e.note ?? "-";
                         const isExpandable = Boolean(editNote?.before);
                         const isOpen = openEventId === e.id;
                         const before = editNote?.before ?? {};
