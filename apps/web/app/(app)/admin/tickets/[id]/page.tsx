@@ -306,6 +306,7 @@ export default function AdminTicketDetailPage() {
     queryKey: ["admin-ticket-detail", ticketId],
     queryFn: () => api<TicketDetail>(`/tickets/${ticketId}/detail?scope=all`),
     enabled: isStaff && isTicketIdValid,
+    staleTime: 10_000, // 10초간 캐시 유지
   });
 
   const { data: adminUsers = [] } = useQuery({

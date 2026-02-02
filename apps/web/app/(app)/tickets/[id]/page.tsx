@@ -270,6 +270,7 @@ export default function TicketDetailPage() {
     queryKey: ["ticketDetail", ticketId],
     queryFn: () => api<TicketDetail>(`/tickets/${ticketId}/detail`),
     enabled: Number.isFinite(ticketId),
+    staleTime: 10_000, // 10초간 캐시 유지
   });
 
   useEffect(() => {
