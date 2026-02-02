@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { useTicketCategories } from "@/lib/use-ticket-categories";
 import PageHeader from "@/components/PageHeader";
 import { Card } from "@/components/ui";
 import { Download, BarChart3, ArrowLeft, ChevronDown } from "lucide-react";
@@ -30,7 +31,7 @@ type Ticket = {
 type ColDef =
   | { key: string; label: string; hasDataFilter: false }
   | { key: string; label: string; hasDataFilter: true }
-  | { key: string; label: string; hasDataFilter: "datetime"; parts: ("year" | "month" | "day" | "hour")[] };
+  | { key: string; label: string; hasDataFilter: "created_at" };
 
 const COLUMN_DEFS: ColDef[] = [
   { key: "id", label: "ID", hasDataFilter: false },
@@ -39,9 +40,12 @@ const COLUMN_DEFS: ColDef[] = [
   { key: "priority", label: "우선순위", hasDataFilter: true },
   { key: "work_type", label: "작업유형", hasDataFilter: true },
   { key: "project_name", label: "프로젝트", hasDataFilter: true },
-  { key: "requester_display", label: "요청자", hasDataFilter: true },
+  { key: "category_display", label: "카테고리", hasDataFilter: true },
+  { key: "requester_name", label: "요청자 이름", hasDataFilter: false },
+  { key: "requester_title", label: "요청자 직급", hasDataFilter: true },
+  { key: "requester_department", label: "요청자 부서", hasDataFilter: true },
   { key: "assignee_display", label: "담당자", hasDataFilter: true },
-  { key: "created_at", label: "생성일시", hasDataFilter: "datetime", parts: ["year", "month", "day", "hour"] },
+  { key: "created_at", label: "생성일시", hasDataFilter: "created_at" },
 ];
 
 const STATUS_LABELS: Record<string, string> = {
@@ -57,12 +61,19 @@ const PRIORITY_LABELS: Record<string, string> = {
   high: "높음",
 };
 
-function getValue(t: Ticket, key: string): string {
-  if (key === "requester_display") {
-    const r = t.requester;
-    if (!r) return t.requester_emp_no;
-    const parts = [r.kor_name, r.title, r.department].filter(Boolean);
-    return parts.length ? parts.join(" / ") : t.requester_emp_no;
+function getValue(
+  t: Ticket,
+  key: string,
+  opts?: { categoryMap?: Record<number, string> }
+): string {
+  if (key === "requester_name") return t.requester?.kor_name ?? t.requester_emp_no ?? "-";
+  if (key === "requester_title") return t.requester?.title ?? "-";
+  if (key === "requester_department") return t.requester?.department ?? "-";
+  if (key === "category_display") {
+    const ids = t.category_ids ?? (t.category_id != null ? [t.category_id] : []);
+    const map = opts?.categoryMap ?? {};
+    const names = ids.map((id) => map[id] ?? String(id)).filter(Boolean);
+    return names.length ? names.join(", ") : "-";
   }
   if (key === "assignee_display") {
     const list = t.assignees ?? (t.assignee ? [t.assignee] : []);
@@ -76,16 +87,16 @@ function getValue(t: Ticket, key: string): string {
   return String(v);
 }
 
-function parseDatetime(val: string | null | undefined): { y: number; m: number; d: number; h: number } | null {
-  if (!val) return null;
-  const dt = new Date(val);
-  if (Number.isNaN(dt.getTime())) return null;
-  return {
-    y: dt.getFullYear(),
-    m: dt.getMonth() + 1,
-    d: dt.getDate(),
-    h: dt.getHours(),
-  };
+function dayOfYear(d: Date): number {
+  const start = new Date(d.getFullYear(), 0, 0);
+  return Math.floor((d.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
+}
+
+/** 0~100 퍼센트를 해당 연도의 일(1~366)로 변환 후 "M/d" 형식으로 표시 (비윤년 기준) */
+function formatDayOfYearPercent(pct: number): string {
+  const day = Math.min(366, Math.max(1, Math.round(1 + (365 * pct) / 100)));
+  const d = new Date(2024, 0, day);
+  return d.toLocaleDateString("ko-KR", { month: "numeric", day: "numeric" });
 }
 
 function escapeCsvCell(s: string): string {
@@ -93,11 +104,117 @@ function escapeCsvCell(s: string): string {
   return s;
 }
 
+function DateRangeBar({
+  value: [start, end],
+  onChange,
+}: {
+  value: [number, number];
+  onChange: (v: [number, number]) => void;
+}) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef<"start" | "end" | null>(null);
+
+  const pctFromClientX = useCallback((clientX: number) => {
+    const el = trackRef.current;
+    if (!el) return 0;
+    const rect = el.getBoundingClientRect();
+    const pct = ((clientX - rect.left) / rect.width) * 100;
+    return Math.max(0, Math.min(100, pct));
+  }, []);
+
+  const onPointerDown = useCallback(
+    (which: "start" | "end") => (e: React.PointerEvent) => {
+      e.preventDefault();
+      dragging.current = which;
+      (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    },
+    []
+  );
+  const onPointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (dragging.current === null) return;
+      const pct = pctFromClientX(e.clientX);
+      if (dragging.current === "start") {
+        onChange([Math.min(pct, end), end]);
+      } else {
+        onChange([start, Math.max(pct, start)]);
+      }
+    },
+    [start, end, onChange, pctFromClientX]
+  );
+  const onPointerUp = useCallback((e: React.PointerEvent) => {
+    dragging.current = null;
+    (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+  }, []);
+
+  return (
+    <div className="space-y-2">
+      <div className="relative h-8 flex items-center" ref={trackRef}>
+        <div
+          className="absolute left-0 right-0 h-2 rounded-full"
+          style={{ backgroundColor: "var(--bg-subtle)" }}
+        />
+        <div
+          className="absolute h-2 rounded-full pointer-events-none"
+          style={{
+            left: `${start}%`,
+            width: `${end - start}%`,
+            backgroundColor: "var(--color-primary-500)",
+          }}
+        />
+        <div
+          role="slider"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={start}
+          tabIndex={0}
+          className="absolute w-5 h-5 rounded-full border-2 cursor-grab active:cursor-grabbing touch-none"
+          style={{
+            left: `calc(${start}% - 10px)`,
+            top: "50%",
+            transform: "translateY(-50%)",
+            backgroundColor: "var(--bg-card)",
+            borderColor: "var(--color-primary-500)",
+          }}
+          onPointerDown={onPointerDown("start")}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerLeave={onPointerUp}
+        />
+        <div
+          role="slider"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={end}
+          tabIndex={0}
+          className="absolute w-5 h-5 rounded-full border-2 cursor-grab active:cursor-grabbing touch-none"
+          style={{
+            left: `calc(${end}% - 10px)`,
+            top: "50%",
+            transform: "translateY(-50%)",
+            backgroundColor: "var(--bg-card)",
+            borderColor: "var(--color-primary-500)",
+          }}
+          onPointerDown={onPointerDown("end")}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerLeave={onPointerUp}
+        />
+      </div>
+      <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+        막대 위의 둥근 손잡이를 좌우로 드래그해 기간을 설정하세요 (왼쪽: 시작일, 오른쪽: 종료일)
+      </p>
+    </div>
+  );
+}
+
 export default function AdminDataPage() {
+  const { map: categoryMap = {} } = useTicketCategories();
   const [selectedColumns, setSelectedColumns] = useState<Set<string>>(
-    new Set(["id", "title", "status", "priority", "created_at"])
+    new Set(["id", "title", "status", "priority", "category_display", "requester_name", "requester_title", "requester_department", "created_at"])
   );
   const [dataFilters, setDataFilters] = useState<Record<string, Set<string>>>({});
+  const [createdDayRangePercent, setCreatedDayRangePercent] = useState<[number, number]>([0, 100]);
   const [showColumnPicker, setShowColumnPicker] = useState(true);
 
   const { data: tickets = [], isLoading, error } = useQuery({
@@ -105,19 +222,17 @@ export default function AdminDataPage() {
     queryFn: () => api<Ticket[]>("/tickets?scope=all&limit=1000"),
   });
 
-  const { distinctValues, datetimeValues } = useMemo(() => {
+  const { distinctValues, createdYearValues } = useMemo(() => {
     const dv: Record<string, string[]> = {};
-    const dtv: Record<string, { year: number[]; month: number[]; day: number[]; hour: number[] }> = {};
     const statusSet = new Set<string>();
     const prioritySet = new Set<string>();
     const workTypeSet = new Set<string>();
     const projectSet = new Set<string>();
-    const requesterSet = new Set<string>();
+    const categorySet = new Set<string>();
+    const requesterTitleSet = new Set<string>();
+    const requesterDeptSet = new Set<string>();
     const assigneeSet = new Set<string>();
-    const createdY = new Set<number>();
-    const createdM = new Set<number>();
-    const createdD = new Set<number>();
-    const createdH = new Set<number>();
+    const yearSet = new Set<number>();
 
     for (const t of tickets) {
       if (t.status) statusSet.add(t.status);
@@ -126,15 +241,16 @@ export default function AdminDataPage() {
       workTypeSet.add(wt);
       const pn = t.project_name || "-";
       projectSet.add(pn);
-      requesterSet.add(getValue(t, "requester_display"));
+      categorySet.add(getValue(t, "category_display", { categoryMap }));
+      const rt = t.requester?.title ?? "-";
+      requesterTitleSet.add(rt);
+      const rd = t.requester?.department ?? "-";
+      requesterDeptSet.add(rd);
       assigneeSet.add(getValue(t, "assignee_display"));
 
-      const created = parseDatetime(t.created_at);
-      if (created) {
-        createdY.add(created.y);
-        createdM.add(created.m);
-        createdD.add(created.d);
-        createdH.add(created.h);
+      if (t.created_at) {
+        const d = new Date(t.created_at);
+        if (!Number.isNaN(d.getTime())) yearSet.add(d.getFullYear());
       }
     }
 
@@ -142,45 +258,41 @@ export default function AdminDataPage() {
     dv.priority = Array.from(prioritySet).sort();
     dv.work_type = Array.from(workTypeSet).sort((a, b) => (a === "-" ? 1 : b === "-" ? -1 : a.localeCompare(b)));
     dv.project_name = Array.from(projectSet).sort((a, b) => (a === "-" ? 1 : b === "-" ? -1 : a.localeCompare(b)));
-    dv.requester_display = Array.from(requesterSet).filter((x) => x !== "-").sort();
+    dv.category_display = Array.from(categorySet).filter((x) => x !== "-").sort((a, b) => a.localeCompare(b));
+    dv.requester_title = Array.from(requesterTitleSet).sort((a, b) => (a === "-" ? 1 : b === "-" ? -1 : a.localeCompare(b)));
+    dv.requester_department = Array.from(requesterDeptSet).sort((a, b) => (a === "-" ? 1 : b === "-" ? -1 : a.localeCompare(b)));
     dv.assignee_display = Array.from(assigneeSet).filter((x) => x !== "-").sort();
+    dv.created_at_year = Array.from(yearSet).sort((a, b) => a - b).map(String);
 
-    dtv.created_at = {
-      year: Array.from(createdY).sort((a, b) => a - b),
-      month: Array.from(createdM).sort((a, b) => a - b),
-      day: Array.from(createdD).sort((a, b) => a - b),
-      hour: Array.from(createdH).sort((a, b) => a - b),
-    };
-
-    return { distinctValues: dv, datetimeValues: dtv };
-  }, [tickets]);
+    return { distinctValues: dv, createdYearValues: dv.created_at_year };
+  }, [tickets, categoryMap]);
 
   const filteredTickets = useMemo(() => {
+    const [startPct, endPct] = createdDayRangePercent;
+    const startDay = Math.round(1 + (365 * startPct) / 100);
+    const endDay = Math.round(1 + (365 * endPct) / 100);
+    const yearIncluded = dataFilters["created_at_year"];
+
     return tickets.filter((t) => {
       for (const col of COLUMN_DEFS) {
         if (col.hasDataFilter === false) continue;
-        if (col.hasDataFilter === "datetime" && "parts" in col) {
-          const dt = parseDatetime((t as Record<string, unknown>)[col.key] as string);
-          if (!dt) continue;
-          const base = `${col.key}_`;
-          const excludedY = dataFilters[`${base}year`];
-          const excludedM = dataFilters[`${base}month`];
-          const excludedD = dataFilters[`${base}day`];
-          const excludedH = dataFilters[`${base}hour`];
-          if (excludedY?.size && excludedY.has(String(dt.y))) return false;
-          if (excludedM?.size && excludedM.has(String(dt.m))) return false;
-          if (excludedD?.size && excludedD.has(String(dt.d))) return false;
-          if (excludedH?.size && excludedH.has(String(dt.h))) return false;
+        if (col.hasDataFilter === "created_at" && col.key === "created_at") {
+          if (!t.created_at) return false;
+          const d = new Date(t.created_at);
+          if (Number.isNaN(d.getTime())) return false;
+          if (yearIncluded?.size && !yearIncluded.has(String(d.getFullYear()))) return false;
+          const doy = dayOfYear(d);
+          if (doy < startDay || doy > endDay) return false;
         } else if (col.hasDataFilter === true) {
           const excluded = dataFilters[col.key];
           if (!excluded?.size) continue;
-          const val = getValue(t, col.key) || "-";
+          const val = getValue(t, col.key, { categoryMap }) || "-";
           if (excluded.has(val)) return false;
         }
       }
       return true;
     });
-  }, [tickets, dataFilters]);
+  }, [tickets, dataFilters, createdDayRangePercent, categoryMap]);
 
   const toggleColumn = (key: string) => {
     setSelectedColumns((prev) => {
@@ -206,7 +318,7 @@ export default function AdminDataPage() {
     const cols = COLUMN_DEFS.filter((c) => selectedColumns.has(c.key));
     const headers = cols.map((c) => c.label);
     const rows = filteredTickets.map((t) =>
-      cols.map((c) => escapeCsvCell(getValue(t, c.key))).join(",")
+      cols.map((c) => escapeCsvCell(getValue(t, c.key, { categoryMap }))).join(",")
     );
     const csv = "\uFEFF" + [headers.join(","), ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
@@ -327,40 +439,42 @@ export default function AdminDataPage() {
                         )}
                       </div>
                     )}
-                    {col.hasDataFilter === "datetime" && "parts" in col && (
-                      <div className="grid grid-cols-4 gap-2">
-                        {(["year", "month", "day", "hour"] as const).map((part) => {
-                          const partLabel = { year: "년", month: "월", day: "일", hour: "시" }[part];
-                          const vals = datetimeValues[col.key]?.[part] ?? [];
-                          const fKey = `${col.key}_${part}`;
-                          const excluded = dataFilters[fKey];
-                          return (
-                            <div key={part}>
-                              <div className="text-xs font-medium mb-1" style={{ color: "var(--text-tertiary)" }}>
-                                {partLabel}
-                              </div>
-                              <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
-                                {vals.map((n) => {
-                                  const checked = !excluded?.has(String(n));
-                                  return (
-                                    <label key={n} className="inline-flex items-center gap-1 cursor-pointer text-xs">
-                                      <input
-                                        type="checkbox"
-                                        checked={checked}
-                                        onChange={() => toggleDataFilter(fKey, String(n))}
-                                        className="rounded"
-                                      />
-                                      <span style={{ color: "var(--text-primary)" }}>{n}</span>
-                                    </label>
-                                  );
-                                })}
-                                {vals.length === 0 && (
-                                  <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>-</span>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
+                    {col.hasDataFilter === "created_at" && col.key === "created_at" && (
+                      <div className="space-y-3">
+                        <div>
+                          <div className="text-xs font-medium mb-1.5" style={{ color: "var(--text-tertiary)" }}>
+                            년도 (선택한 연도만 포함)
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {(distinctValues.created_at_year ?? []).map((yearStr) => {
+                              const excluded = dataFilters["created_at_year"];
+                              const checked = !excluded?.has(yearStr);
+                              return (
+                                <label
+                                  key={yearStr}
+                                  className="inline-flex items-center gap-1.5 cursor-pointer text-sm"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => toggleDataFilter("created_at_year", yearStr)}
+                                    className="rounded"
+                                  />
+                                  <span style={{ color: "var(--text-primary)" }}>{yearStr}년</span>
+                                </label>
+                              );
+                            })}
+                            {(!distinctValues.created_at_year || distinctValues.created_at_year.length === 0) && (
+                              <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>데이터 없음</span>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex items-center justify-between gap-2 text-xs mb-1.5" style={{ color: "var(--text-tertiary)" }}>
+                            <span>월·일 기간: {formatDayOfYearPercent(createdDayRangePercent[0])} ~ {formatDayOfYearPercent(createdDayRangePercent[1])}</span>
+                          </div>
+                          <DateRangeBar value={createdDayRangePercent} onChange={setCreatedDayRangePercent} />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -410,7 +524,7 @@ export default function AdminDataPage() {
                   <tr key={t.id} style={{ borderBottom: "1px solid var(--border-default)" }}>
                     {visibleColDefs.map((c) => (
                       <td key={c.key} className="px-4 py-2.5 max-w-[200px] truncate" style={{ color: "var(--text-primary)" }}>
-                        {getValue(t, c.key)}
+                        {getValue(t, c.key, { categoryMap })}
                       </td>
                     ))}
                   </tr>

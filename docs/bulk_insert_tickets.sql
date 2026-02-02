@@ -15,7 +15,8 @@ INSERT INTO ticket.tickets (
   requester_title,
   requester_department,
   created_at,
-  updated_at
+  updated_at,
+  reopen_count
 )
 SELECT
   '테스트 요청 ' || n || ' - ' || (ARRAY['로그인 오류', '비밀번호 초기화', '프린터 연결', '메일 설정', '권한 문의', '시스템 접속', '재택 환경 설정', '회의실 예약'])[1 + (n % 8)],
@@ -31,5 +32,6 @@ SELECT
   (ARRAY['전문원', '선임전문원', '책임전문원', '인턴'])[1 + (n % 4)],
   (ARRAY['인사팀', '재무팀', '기획팀', '전산2팀', '대외협력팀', '도서2팀', '전략기획팀', '총장실'])[1 + (n % 8)],
   date '2026-01-01' + (floor(random() * 31)::int) * interval '1 day' + (random() * 86400)::int * interval '1 second',
-  date '2026-01-01' + (floor(random() * 31)::int) * interval '1 day' + (random() * 86400)::int * interval '1 second'
+  date '2026-01-01' + (floor(random() * 31)::int) * interval '1 day' + (random() * 86400)::int * interval '1 second',
+  0  -- 재요청 횟수 (ticket_reopens 레코드 없이 넣을 때는 0)
 FROM generate_series(1, 80) AS n;
