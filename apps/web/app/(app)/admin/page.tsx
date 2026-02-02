@@ -746,7 +746,7 @@ export default function AdminDashboard() {
         </ChartCard>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4 lg:items-stretch">
         <ChartCard
           title="카테고리"
           subtitle="서비스 유형별 분류"
@@ -757,10 +757,10 @@ export default function AdminDashboard() {
           <DonutChart data={categoryChartData} />
         </ChartCard>
 
-        <div className="flex flex-col gap-3 lg:col-span-1">
+        <div className="flex flex-col gap-3 lg:col-span-1 min-h-[360px] lg:min-h-0">
           <Link
             href="/admin/tickets/all"
-            className="flex items-center justify-center gap-2 rounded-xl border-2 p-4 transition-all"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border-2 p-4 transition-all min-h-0"
             style={{
               borderColor: "var(--border-default)",
               backgroundColor: "var(--bg-card)",
@@ -774,15 +774,15 @@ export default function AdminDashboard() {
               e.currentTarget.style.backgroundColor = "var(--bg-card)";
             }}
           >
-            <FolderOpen className="h-5 w-5" style={{ color: "var(--color-primary-600)" }} />
+            <FolderOpen className="h-5 w-5 shrink-0" style={{ color: "var(--color-primary-600)" }} />
             <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
               모든 요청 보기
             </span>
-            <ArrowRight className="h-4 w-4" style={{ color: "var(--text-tertiary)" }} />
+            <ArrowRight className="h-4 w-4 shrink-0" style={{ color: "var(--text-tertiary)" }} />
           </Link>
           <Link
             href="/admin/data"
-            className="flex items-center justify-center gap-2 rounded-xl border-2 p-4 transition-all"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border-2 p-4 transition-all min-h-0"
             style={{
               borderColor: "var(--border-default)",
               backgroundColor: "var(--bg-card)",
@@ -796,11 +796,11 @@ export default function AdminDashboard() {
               e.currentTarget.style.backgroundColor = "var(--bg-card)";
             }}
           >
-            <BarChart3 className="h-5 w-5" style={{ color: "var(--color-primary-600)" }} />
+            <BarChart3 className="h-5 w-5 shrink-0" style={{ color: "var(--color-primary-600)" }} />
             <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
-              통계페이지로 이동
+              내보내기
             </span>
-            <ArrowRight className="h-4 w-4" style={{ color: "var(--text-tertiary)" }} />
+            <ArrowRight className="h-4 w-4 shrink-0" style={{ color: "var(--text-tertiary)" }} />
           </Link>
         </div>
       </div>

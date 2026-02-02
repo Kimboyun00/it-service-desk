@@ -141,6 +141,38 @@ export function formatDayOfYearPercent(pct: number): string {
   return d.toLocaleDateString("ko-KR", { month: "numeric", day: "numeric" });
 }
 
+/** "M/d", "M-d", "일(1~366)" 문자열을 1~366 일로 파싱. 실패 시 null */
+export function parseMonthDayOrDayOfYear(input: string): number | null {
+  const s = input.trim();
+  if (!s) return null;
+  const num = parseInt(s, 10);
+  if (!Number.isNaN(num) && num >= 1 && num <= 366) return num;
+  const slash = s.split("/").map((x) => parseInt(x.trim(), 10));
+  if (slash.length === 2 && !slash.some(Number.isNaN)) {
+    const [m, d] = slash;
+    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      const date = new Date(2024, m - 1, d);
+      if (date.getMonth() !== m - 1 || date.getDate() !== d) return null;
+      return dayOfYear(date) || 1;
+    }
+  }
+  const dash = s.split("-").map((x) => parseInt(x.trim(), 10));
+  if (dash.length === 2 && !dash.some(Number.isNaN)) {
+    const [m, d] = dash;
+    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      const date = new Date(2024, m - 1, d);
+      if (date.getMonth() !== m - 1 || date.getDate() !== d) return null;
+      return dayOfYear(date) || 1;
+    }
+  }
+  return null;
+}
+
+/** 일(1~366) → 0~100 퍼센트 */
+export function dayOfYearToPercent(day: number): number {
+  return Math.max(0, Math.min(100, ((day - 1) / 365) * 100));
+}
+
 export function escapeCsvCell(s: string): string {
   if (s.includes(",") || s.includes('"') || s.includes("\n")) return `"${s.replace(/"/g, '""')}"`;
   return s;

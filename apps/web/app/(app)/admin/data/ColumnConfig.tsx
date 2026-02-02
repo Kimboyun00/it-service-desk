@@ -165,8 +165,8 @@ export function ColumnConfig({
                       isDragging ? "opacity-50" : ""
                     } ${isDragOver ? "ring-1 ring-[var(--color-primary-500)]" : ""}`}
                     style={{
-                      borderColor: selected ? "var(--color-primary-400)" : "var(--border-subtle)",
-                      backgroundColor: selected ? "var(--color-primary-50)" : "transparent",
+                      borderColor: selected ? "var(--color-primary-500)" : "var(--border-subtle)",
+                      backgroundColor: selected ? "var(--bg-selected)" : "transparent",
                     }}
                   >
                     <span
@@ -185,7 +185,7 @@ export function ColumnConfig({
                       />
                       <span
                         className="text-sm font-medium truncate"
-                        style={{ color: selected ? "var(--text-primary)" : "var(--text-secondary)" }}
+                        style={{ color: "var(--text-primary)" }}
                       >
                         {def.label}
                       </span>

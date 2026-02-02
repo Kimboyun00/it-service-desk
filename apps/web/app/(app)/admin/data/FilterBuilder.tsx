@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, X, ChevronDown } from "lucide-react";
 import { Card } from "@/components/ui";
 import { DateRangeBar } from "./DateRangeBar";
@@ -9,6 +9,8 @@ import {
   COLUMN_DEFS,
   getDisplayLabel,
   formatDayOfYearPercent,
+  parseMonthDayOrDayOfYear,
+  dayOfYearToPercent,
   type FilterRule,
 } from "./data-extract-types";
 
@@ -194,6 +196,35 @@ export function FilterBuilder({
   className?: string;
 }) {
   const yearOptions = distinctValues.created_at_year ?? [];
+  const [startInput, setStartInput] = useState("");
+  const [endInput, setEndInput] = useState("");
+
+  useEffect(() => {
+    setStartInput(formatDayOfYearPercent(createdDayRangePercent[0]));
+    setEndInput(formatDayOfYearPercent(createdDayRangePercent[1]));
+  }, [createdDayRangePercent[0], createdDayRangePercent[1]]);
+
+  const commitStart = (raw: string) => {
+    const v = parseMonthDayOrDayOfYear(raw);
+    if (v != null) {
+      const pct = dayOfYearToPercent(v);
+      setCreatedDayRangePercent([Math.min(pct, createdDayRangePercent[1]), createdDayRangePercent[1]]);
+      setStartInput(formatDayOfYearPercent(dayOfYearToPercent(v)));
+    } else {
+      setStartInput(formatDayOfYearPercent(createdDayRangePercent[0]));
+    }
+  };
+  const commitEnd = (raw: string) => {
+    const v = parseMonthDayOrDayOfYear(raw);
+    if (v != null) {
+      const pct = dayOfYearToPercent(v);
+      setCreatedDayRangePercent([createdDayRangePercent[0], Math.max(pct, createdDayRangePercent[0])]);
+      setEndInput(formatDayOfYearPercent(dayOfYearToPercent(v)));
+    } else {
+      setEndInput(formatDayOfYearPercent(createdDayRangePercent[1]));
+    }
+  };
+
   const toggleYear = (yearStr: string) => {
     const set = new Set(createdYearInclude);
     if (set.has(yearStr)) set.delete(yearStr);
@@ -267,7 +298,44 @@ export function FilterBuilder({
         </div>
         <div>
           <div className="text-xs mb-1.5" style={{ color: "var(--text-tertiary)" }}>
-            월·일 범위: {formatDayOfYearPercent(createdDayRangePercent[0])} ~ {formatDayOfYearPercent(createdDayRangePercent[1])}
+            월·일 범위 (바 드래그 또는 직접 입력: M/d, M-d, 1~366)
+          </div>
+          <div className="flex flex-wrap items-center gap-3 mb-2">
+            <label className="flex items-center gap-2 text-sm">
+              <span style={{ color: "var(--text-secondary)" }}>시작</span>
+              <input
+                type="text"
+                className="w-24 rounded-lg border px-2 py-1.5 text-sm"
+                style={{
+                  borderColor: "var(--border-default)",
+                  backgroundColor: "var(--bg-input)",
+                  color: "var(--text-primary)",
+                }}
+                placeholder="1/1 또는 1~366"
+                value={startInput}
+                onChange={(e) => setStartInput(e.target.value)}
+                onBlur={(e) => commitStart(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && commitStart((e.target as HTMLInputElement).value)}
+              />
+            </label>
+            <span style={{ color: "var(--text-tertiary)" }}>~</span>
+            <label className="flex items-center gap-2 text-sm">
+              <span style={{ color: "var(--text-secondary)" }}>종료</span>
+              <input
+                type="text"
+                className="w-24 rounded-lg border px-2 py-1.5 text-sm"
+                style={{
+                  borderColor: "var(--border-default)",
+                  backgroundColor: "var(--bg-input)",
+                  color: "var(--text-primary)",
+                }}
+                placeholder="12/31 또는 1~366"
+                value={endInput}
+                onChange={(e) => setEndInput(e.target.value)}
+                onBlur={(e) => commitEnd(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && commitEnd((e.target as HTMLInputElement).value)}
+              />
+            </label>
           </div>
           <DateRangeBar value={createdDayRangePercent} onChange={setCreatedDayRangePercent} />
         </div>

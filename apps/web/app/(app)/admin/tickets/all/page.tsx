@@ -10,7 +10,8 @@ import Pagination from "@/components/Pagination";
 import ErrorDialog from "@/components/ErrorDialog";
 import PageHeader from "@/components/PageHeader";
 import { Badge, Card, CardBody } from "@/components/ui";
-import { Search, ListChecks } from "lucide-react";
+import Link from "next/link";
+import { Search, ListChecks, Download } from "lucide-react";
 
 type Ticket = {
   id: number;
@@ -587,8 +588,20 @@ export default function AdminAllTicketsPage() {
                 </tbody>
               </table>
             </div>
-            <div className="px-6 py-4 border-t" style={{ borderColor: "var(--border-default)" }}>
+            <div className="px-6 py-4 border-t flex flex-wrap items-center justify-between gap-4" style={{ borderColor: "var(--border-default)" }}>
               <Pagination page={page} total={sorted.length} pageSize={pageSize} onChange={setPage} />
+              <Link
+                href="/admin/data"
+                className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors"
+                style={{
+                  borderColor: "var(--border-default)",
+                  backgroundColor: "var(--bg-card)",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                <Download className="h-4 w-4" />
+                내보내기
+              </Link>
             </div>
           </CardBody>
         </Card>
