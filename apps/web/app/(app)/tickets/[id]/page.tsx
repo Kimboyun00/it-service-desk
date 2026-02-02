@@ -270,20 +270,18 @@ export default function TicketDetailPage() {
     queryKey: ["ticketDetail", ticketId],
     queryFn: () => api<TicketDetail>(`/tickets/${ticketId}/detail`),
     enabled: Number.isFinite(ticketId),
-    staleTime: 10_000, // 10초간 캐시 유지
   });
 
   useEffect(() => {
     if (!data?.ticket?.id) return;
     if (initialTabSetForTicket.current === data.ticket.id) return;
     initialTabSetForTicket.current = data.ticket.id;
-    const list = Array.isArray(data.reopens) ? data.reopens : [];
-    if (list.length > 0 && data.ticket.status === "open") {
-      setBodyTab(list.length - 1);
+    if ((data.reopens?.length ?? 0) > 0 && data.ticket.status === "open") {
+      setBodyTab(data.reopens.length - 1);
     } else {
       setBodyTab("initial");
     }
-  }, [data?.ticket?.id, data?.ticket?.status, data?.reopens]);
+  }, [data?.ticket?.id, data?.reopens?.length, data?.ticket?.status]);
 
   // 처리이력: 요청 접수·상태 변경·재요청만, 시간순(과거 → 현재) 정렬
   const filteredEvents = useMemo(() => {
@@ -293,7 +291,7 @@ export default function TicketDetailPage() {
       .sort((a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime());
   }, [data?.events]);
 
-  const reopens = Array.isArray(data?.reopens) ? data.reopens : [];
+  const reopens = data?.reopens ?? [];
   const currentReopenId = bodyTab === "initial" ? null : reopens[bodyTab]?.id ?? null;
   const bodyContent =
     bodyTab === "initial"
@@ -313,17 +311,25 @@ export default function TicketDetailPage() {
     return data.comments.filter((c) => c.reopen_id === currentReopenId);
   }, [data?.comments, bodyTab, currentReopenId, reopens.length]);
 
-  // 완료일: 상태가 '완료'(resolved)일 때, status_changed → resolved 이벤트 중 가장 최근 시각
-  const resolvedAt = useMemo(() => {
+  // 완료일: 최초 요청 완료 = 첫 번째 resolved 이벤트, 재요청별 완료 = 그 다음 resolved 이벤트들 (시간순)
+  const { initialResolvedAt, reopenResolvedAts } = useMemo(() => {
     const evs = (data?.events ?? []).filter(
       (e) => e.type === "status_changed" && e.to_value === "resolved"
     );
-    if (evs.length === 0) return null;
     const sorted = [...evs].sort(
-      (a, b) => new Date((b as { created_at?: string }).created_at ?? 0).getTime() - new Date((a as { created_at?: string }).created_at ?? 0).getTime()
+      (a, b) =>
+        new Date((a as { created_at?: string }).created_at ?? 0).getTime() -
+        new Date((b as { created_at?: string }).created_at ?? 0).getTime()
     );
-    return sorted[0]?.created_at ?? null;
+    const initial = sorted[0]?.created_at ?? null;
+    const reopenAts: (string | null)[] = [];
+    for (let i = 1; i < sorted.length; i++) {
+      reopenAts.push(sorted[i]?.created_at ?? null);
+    }
+    return { initialResolvedAt: initial, reopenResolvedAts: reopenAts };
   }, [data?.events]);
+
+  const currentReopenCreatedAt = bodyTab === "initial" ? null : reopens[bodyTab]?.created_at ?? null;
 
   const downloadAttachmentM = useMutation({
     mutationFn: async (attachmentId: number) => {
@@ -447,18 +453,17 @@ export default function TicketDetailPage() {
   }
 
   const t = data.ticket;
-  const statusInfo = statusMeta(t?.status ?? "open");
-  const priorityInfo = priorityMeta(t?.priority ?? "medium");
+  const statusInfo = statusMeta(t.status);
+  const priorityInfo = priorityMeta(t.priority);
 
   // 제목 표시: 최초 요청 탭이면 [재요청] 제거, 재요청 탭이면 [재요청] 추가
   const displayTitle = useMemo(() => {
-    const raw = t?.title ?? "";
-    const baseTitle = raw.replace(/^\[재요청\]\s*/, "");
+    const baseTitle = t.title.replace(/^\[재요청\]\s*/, "");
     if (bodyTab === "initial") {
       return baseTitle;
     }
     return `[재요청] ${baseTitle}`;
-  }, [t?.title, bodyTab]);
+  }, [t.title, bodyTab]);
 
   return (
     <>
@@ -609,21 +614,11 @@ export default function TicketDetailPage() {
                   })()
                 }
               />
-              <FieldRow label="생성일" value={formatDate(t.created_at)} />
+              <FieldRow
+                label={bodyTab === "initial" ? "생성일" : "재요청 생성일"}
+                value={formatDate(bodyTab === "initial" ? t.created_at : currentReopenCreatedAt)}
+              />
             </div>
-            {t.status === "resolved" && resolvedAt && (
-              <div
-                className="relative grid grid-cols-1 md:grid-cols-2"
-                style={{ borderTop: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
-              >
-                <div
-                  className="hidden md:block absolute inset-y-0 left-1/2 w-px"
-                  style={{ backgroundColor: "var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
-                />
-                <FieldRow label="완료일" value={formatDate(resolvedAt)} />
-                <FieldRow label="" value="" />
-              </div>
-            )}
             <div 
               className="relative grid grid-cols-1 md:grid-cols-2"
               style={{ borderTop: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
@@ -651,7 +646,14 @@ export default function TicketDetailPage() {
                   )
                 }
               />
-              <FieldRow label="" value="" />
+              <FieldRow
+                label={bodyTab === "initial" ? "완료일" : "재요청 완료일"}
+                value={
+                  bodyTab === "initial"
+                    ? (initialResolvedAt ? formatDate(initialResolvedAt) : "-")
+                    : (reopenResolvedAts[bodyTab] ? formatDate(reopenResolvedAts[bodyTab]) : "-")
+                }
+              />
             </div>
         </div>
 
@@ -787,7 +789,7 @@ export default function TicketDetailPage() {
           <>
             {commentsFiltered.map((c) => {
               const isMyComment = me.emp_no === c.author_emp_no;
-              const commentAttachments = (data?.attachments ?? []).filter((a) => a.comment_id === c.id);
+              const commentAttachments = data.attachments.filter((a) => a.comment_id === c.id);
               return (
                 <Card key={c.id}>
                   <CardHeader>

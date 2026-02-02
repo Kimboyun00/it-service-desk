@@ -220,7 +220,6 @@ export default function AdminDataPage() {
   const { data: tickets = [], isLoading, error } = useQuery({
     queryKey: ["tickets", "all", 1000],
     queryFn: () => api<Ticket[]>("/tickets?scope=all&limit=1000"),
-    staleTime: 60_000, // 1분간 캐시 유지 (데이터 추출은 실시간성이 덜 중요)
   });
 
   const { distinctValues, createdYearValues } = useMemo(() => {

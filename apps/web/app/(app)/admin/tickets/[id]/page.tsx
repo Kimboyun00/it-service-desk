@@ -306,7 +306,6 @@ export default function AdminTicketDetailPage() {
     queryKey: ["admin-ticket-detail", ticketId],
     queryFn: () => api<TicketDetail>(`/tickets/${ticketId}/detail?scope=all`),
     enabled: isStaff && isTicketIdValid,
-    staleTime: 10_000, // 10초간 캐시 유지
   });
 
   const { data: adminUsers = [] } = useQuery({
@@ -479,7 +478,7 @@ export default function AdminTicketDetailPage() {
     setCommentFiles((prev) => prev.filter((_, i) => i != idx));
   }
 
-  const reopens = Array.isArray(data?.reopens) ? data.reopens : [];
+  const reopens = data?.reopens ?? [];
   const currentReopenId = bodyTab === "initial" ? null : reopens[bodyTab]?.id ?? null;
   const currentReopenCreatedAt = bodyTab === "initial" ? null : reopens[bodyTab]?.created_at ?? null;
 
@@ -505,17 +504,22 @@ export default function AdminTicketDetailPage() {
     return data.comments.filter((c) => c.reopen_id === currentReopenId);
   }, [data?.comments, bodyTab, currentReopenId, reopens.length]);
 
-  const resolvedAt = useMemo(() => {
+  // 완료일: 최초 요청 완료 = 첫 번째 resolved 이벤트, 재요청별 완료 = 그 다음 resolved 이벤트들 (시간순)
+  const { initialResolvedAt, reopenResolvedAts } = useMemo(() => {
     const evs = (data?.events ?? []).filter(
       (e) => e.type === "status_changed" && e.to_value === "resolved"
     );
-    if (evs.length === 0) return null;
     const sorted = [...evs].sort(
       (a, b) =>
-        new Date((b as { created_at?: string }).created_at ?? 0).getTime() -
-        new Date((a as { created_at?: string }).created_at ?? 0).getTime()
+        new Date((a as { created_at?: string }).created_at ?? 0).getTime() -
+        new Date((b as { created_at?: string }).created_at ?? 0).getTime()
     );
-    return sorted[0]?.created_at ?? null;
+    const initial = sorted[0]?.created_at ?? null;
+    const reopenAts: (string | null)[] = [];
+    for (let i = 1; i < sorted.length; i++) {
+      reopenAts.push(sorted[i]?.created_at ?? null);
+    }
+    return { initialResolvedAt: initial, reopenResolvedAts: reopenAts };
   }, [data?.events]);
 
   if (!isTicketIdValid) {
@@ -568,21 +572,20 @@ export default function AdminTicketDetailPage() {
       </div>
     );
   }
-  const statusInfo = statusMeta(t?.status ?? "open");
-  const priorityInfo = priorityMeta(t?.priority ?? "medium");
+  const statusInfo = statusMeta(t.status);
+  const priorityInfo = priorityMeta(t.priority);
   const attachments = data.attachments ?? [];
   const comments = data.comments ?? [];
   const ticketAttachments = attachments.filter((a) => !a.comment_id);
 
   // 제목 표시: 최초 요청 탭이면 [재요청] 제거, 재요청 탭이면 [재요청] 추가
   const displayTitle = useMemo(() => {
-    const raw = t?.title ?? "";
-    const baseTitle = raw.replace(/^\[재요청\]\s*/, "");
+    const baseTitle = t.title.replace(/^\[재요청\]\s*/, "");
     if (bodyTab === "initial") {
       return baseTitle;
     }
     return `[재요청] ${baseTitle}`;
-  }, [t?.title, bodyTab]);
+  }, [t.title, bodyTab]);
 
   return (
     <>
@@ -940,21 +943,6 @@ export default function AdminTicketDetailPage() {
                 className="hidden md:block absolute inset-y-0 left-1/2 w-px"
                 style={{ backgroundColor: "var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
               />
-              <FieldRow label="" value="" />
-              {t.status === "resolved" && resolvedAt ? (
-                <FieldRow label="완료일" value={formatDate(resolvedAt)} />
-              ) : (
-                <FieldRow label="" value="" />
-              )}
-            </div>
-            <div 
-              className="relative grid grid-cols-1 md:grid-cols-2"
-              style={{ borderTop: "1px solid var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
-            >
-              <div
-                className="hidden md:block absolute inset-y-0 left-1/2 w-px"
-                style={{ backgroundColor: "var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
-              />
               <FieldRow
                 label="작업 구분"
                 value={
@@ -1043,7 +1031,14 @@ export default function AdminTicketDetailPage() {
                   </div>
                 }
               />
-              <FieldRow label="" value="" />
+              <FieldRow
+                label={bodyTab === "initial" ? "완료일" : "재요청 완료일"}
+                value={
+                  bodyTab === "initial"
+                    ? (initialResolvedAt ? formatDate(initialResolvedAt) : "-")
+                    : (reopenResolvedAts[bodyTab] ? formatDate(reopenResolvedAts[bodyTab]) : "-")
+                }
+              />
             </div>
         </div>
 

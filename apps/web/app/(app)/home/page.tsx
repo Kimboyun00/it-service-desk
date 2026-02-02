@@ -170,7 +170,6 @@ export default function HomePage() {
     queryKey: ["tickets", "my-completed"],
     queryFn: () => api<TicketOut[]>("/tickets/my-completed"),
     enabled: currentStep === "reopen_list",
-    staleTime: 30_000, // 30초간 캐시 유지
   });
 
   useUnsavedChangesWarning(isDirty || (currentStep.startsWith("reopen") && (selectedTicketId != null || !isEmptyDoc(reopenDescription))));
