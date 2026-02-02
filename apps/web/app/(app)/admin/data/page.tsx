@@ -23,29 +23,34 @@ type Ticket = {
   assignee_emp_no?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
+  reopen_count?: number;
   requester?: { kor_name?: string | null; title?: string | null; department?: string | null } | null;
   assignee?: { kor_name?: string | null } | null;
   assignees?: { kor_name?: string | null }[] | null;
 };
 
 type ColDef =
-  | { key: string; label: string; hasDataFilter: false }
-  | { key: string; label: string; hasDataFilter: true }
-  | { key: string; label: string; hasDataFilter: "created_at" };
+  | { key: string; label: string; section: string; hasDataFilter: false }
+  | { key: string; label: string; section: string; hasDataFilter: true }
+  | { key: string; label: string; section: string; hasDataFilter: "created_at" };
+
+const SECTION_ORDER = ["기본정보", "프로젝트·분류", "요청자", "담당", "일시·재요청"] as const;
 
 const COLUMN_DEFS: ColDef[] = [
-  { key: "id", label: "ID", hasDataFilter: false },
-  { key: "title", label: "제목", hasDataFilter: false },
-  { key: "status", label: "상태", hasDataFilter: true },
-  { key: "priority", label: "우선순위", hasDataFilter: true },
-  { key: "work_type", label: "작업유형", hasDataFilter: true },
-  { key: "project_name", label: "프로젝트", hasDataFilter: true },
-  { key: "category_display", label: "카테고리", hasDataFilter: true },
-  { key: "requester_name", label: "요청자 이름", hasDataFilter: false },
-  { key: "requester_title", label: "요청자 직급", hasDataFilter: true },
-  { key: "requester_department", label: "요청자 부서", hasDataFilter: true },
-  { key: "assignee_display", label: "담당자", hasDataFilter: true },
-  { key: "created_at", label: "생성일시", hasDataFilter: "created_at" },
+  { key: "id", label: "ID", section: "기본정보", hasDataFilter: false },
+  { key: "title", label: "제목", section: "기본정보", hasDataFilter: false },
+  { key: "status", label: "상태", section: "기본정보", hasDataFilter: true },
+  { key: "priority", label: "우선순위", section: "기본정보", hasDataFilter: true },
+  { key: "work_type", label: "작업유형", section: "기본정보", hasDataFilter: true },
+  { key: "project_name", label: "프로젝트", section: "프로젝트·분류", hasDataFilter: true },
+  { key: "category_display", label: "카테고리", section: "프로젝트·분류", hasDataFilter: true },
+  { key: "requester_name", label: "요청자 이름", section: "요청자", hasDataFilter: false },
+  { key: "requester_title", label: "요청자 직급", section: "요청자", hasDataFilter: true },
+  { key: "requester_department", label: "요청자 부서", section: "요청자", hasDataFilter: true },
+  { key: "assignee_display", label: "담당자", section: "담당", hasDataFilter: true },
+  { key: "created_at", label: "생성일시", section: "일시·재요청", hasDataFilter: "created_at" },
+  { key: "updated_at", label: "수정일시", section: "일시·재요청", hasDataFilter: false },
+  { key: "reopen_count", label: "재요청 횟수", section: "일시·재요청", hasDataFilter: false },
 ];
 
 const STATUS_LABELS: Record<string, string> = {
@@ -59,6 +64,13 @@ const PRIORITY_LABELS: Record<string, string> = {
   low: "낮음",
   medium: "보통",
   high: "높음",
+};
+
+const WORK_TYPE_LABELS: Record<string, string> = {
+  incident: "장애",
+  request: "요청",
+  change: "변경",
+  other: "기타",
 };
 
 function getValue(
@@ -80,6 +92,19 @@ function getValue(
     const names = list.map((a) => a?.kor_name).filter(Boolean);
     return names.length ? names.join(", ") : t.assignee_emp_no ?? "-";
   }
+  if (key === "work_type") {
+    const raw = t.work_type;
+    if (raw == null || raw === "") return "-";
+    return WORK_TYPE_LABELS[raw] ?? raw;
+  }
+  if (key === "updated_at") {
+    const raw = t.updated_at;
+    if (raw == null) return "-";
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) return "-";
+    return d.toLocaleString("ko-KR", { dateStyle: "short", timeStyle: "short" });
+  }
+  if (key === "reopen_count") return String(t.reopen_count ?? 0);
   const v = (t as Record<string, unknown>)[key];
   if (v == null) return "-";
   if (typeof v === "string") return v;
@@ -202,7 +227,7 @@ function DateRangeBar({
         />
       </div>
       <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>
-        막대 위의 둥근 손잡이를 좌우로 드래그해 기간을 설정하세요 (왼쪽: 시작일, 오른쪽: 종료일)
+        손잡이를 드래그해 1년 중 포함할 기간(월·일)을 설정하세요.
       </p>
     </div>
   );
@@ -211,7 +236,7 @@ function DateRangeBar({
 export default function AdminDataPage() {
   const { map: categoryMap = {} } = useTicketCategories();
   const [selectedColumns, setSelectedColumns] = useState<Set<string>>(
-    new Set(["id", "title", "status", "priority", "category_display", "requester_name", "requester_title", "requester_department", "created_at"])
+    () => new Set(COLUMN_DEFS.map((c) => c.key))
   );
   const [dataFilters, setDataFilters] = useState<Record<string, Set<string>>>({});
   const [createdDayRangePercent, setCreatedDayRangePercent] = useState<[number, number]>([0, 100]);
@@ -385,108 +410,152 @@ export default function AdminDataPage() {
 
       {showColumnPicker && (
         <Card padding="lg">
-          <div className="text-sm font-semibold mb-4" style={{ color: "var(--text-secondary)" }}>
-            좌측: 컬럼 선택 · 우측: 데이터 필터 (선택 시 해당 값만 포함)
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+            <p className="text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>
+              컬럼 선택: 표시할 항목을 체크하세요. 우측 필터: 포함할 값만 체크 (비워두면 전체 포함)
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedColumns(new Set(COLUMN_DEFS.map((c) => c.key)))}
+                className="text-xs font-medium px-2 py-1 rounded border"
+                style={{ borderColor: "var(--border-default)", color: "var(--text-secondary)", backgroundColor: "var(--bg-card)" }}
+              >
+                전체 선택
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedColumns(new Set())}
+                className="text-xs font-medium px-2 py-1 rounded border"
+                style={{ borderColor: "var(--border-default)", color: "var(--text-secondary)", backgroundColor: "var(--bg-card)" }}
+              >
+                전체 해제
+              </button>
+            </div>
           </div>
           <div className="overflow-x-auto">
-            <div className="min-w-[700px] space-y-3">
-              {COLUMN_DEFS.map((col) => (
-                <div
-                  key={col.key}
-                  className="flex items-start gap-4 py-2 border-b last:border-b-0"
-                  style={{ borderColor: "var(--border-default)" }}
-                >
-                  <div className="w-28 shrink-0 flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedColumns.has(col.key)}
-                      onChange={() => toggleColumn(col.key)}
-                      className="rounded"
-                    />
-                    <span className="font-medium" style={{ color: "var(--text-primary)" }}>
-                      {col.label}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    {col.hasDataFilter === false && (
-                      <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
-                        고유값 · 데이터 선택 없음
-                      </span>
-                    )}
-                    {col.hasDataFilter === true && (
-                      <div className="flex flex-wrap gap-2">
-                        {(distinctValues[col.key] ?? []).map((v) => {
-                          const label = col.key === "status" ? STATUS_LABELS[v] ?? v : col.key === "priority" ? PRIORITY_LABELS[v] ?? v : v;
-                          const excluded = dataFilters[col.key];
-                          const checked = !excluded?.has(v);
-                          return (
-                            <label
-                              key={v}
-                              className="inline-flex items-center gap-1.5 cursor-pointer text-sm"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={() => toggleDataFilter(col.key, v)}
-                                className="rounded"
-                              />
-                              <span style={{ color: "var(--text-primary)" }}>{label}</span>
-                            </label>
-                          );
-                        })}
-                        {(!distinctValues[col.key] || distinctValues[col.key].length === 0) && (
-                          <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>데이터 없음</span>
-                        )}
-                      </div>
-                    )}
-                    {col.hasDataFilter === "created_at" && col.key === "created_at" && (
-                      <div className="space-y-3">
-                        <div>
-                          <div className="text-xs font-medium mb-1.5" style={{ color: "var(--text-tertiary)" }}>
-                            년도 (선택한 연도만 포함)
+            <div className="min-w-[700px] space-y-6">
+              {SECTION_ORDER.map((sectionName) => {
+                const cols = COLUMN_DEFS.filter((c) => c.section === sectionName);
+                if (cols.length === 0) return null;
+                return (
+                  <div key={sectionName}>
+                    <h3
+                      className="text-xs font-semibold uppercase tracking-wide mb-2 pb-1 border-b"
+                      style={{ color: "var(--text-tertiary)", borderColor: "var(--border-default)" }}
+                    >
+                      {sectionName}
+                    </h3>
+                    <div className="space-y-2">
+                      {cols.map((col) => (
+                        <div
+                          key={col.key}
+                          className="flex items-start gap-4 py-2 border-b last:border-b-0"
+                          style={{ borderColor: "var(--border-subtle)" }}
+                        >
+                          <div className="w-32 shrink-0 flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={selectedColumns.has(col.key)}
+                              onChange={() => toggleColumn(col.key)}
+                              className="rounded"
+                            />
+                            <span className="font-medium text-sm" style={{ color: "var(--text-primary)" }}>
+                              {col.label}
+                            </span>
                           </div>
-                          <div className="flex flex-wrap gap-2">
-                            {(distinctValues.created_at_year ?? []).map((yearStr) => {
-                              const excluded = dataFilters["created_at_year"];
-                              const checked = !excluded?.has(yearStr);
-                              return (
-                                <label
-                                  key={yearStr}
-                                  className="inline-flex items-center gap-1.5 cursor-pointer text-sm"
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={checked}
-                                    onChange={() => toggleDataFilter("created_at_year", yearStr)}
-                                    className="rounded"
-                                  />
-                                  <span style={{ color: "var(--text-primary)" }}>{yearStr}년</span>
-                                </label>
-                              );
-                            })}
-                            {(!distinctValues.created_at_year || distinctValues.created_at_year.length === 0) && (
-                              <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>데이터 없음</span>
+                          <div className="flex-1 min-w-0">
+                            {col.hasDataFilter === false && (
+                              <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+                                필터 없음
+                              </span>
+                            )}
+                            {col.hasDataFilter === true && (
+                              <div className="flex flex-wrap gap-2">
+                                {(distinctValues[col.key] ?? []).map((v) => {
+                                  const label =
+                                    col.key === "status"
+                                      ? STATUS_LABELS[v] ?? v
+                                      : col.key === "priority"
+                                        ? PRIORITY_LABELS[v] ?? v
+                                        : col.key === "work_type"
+                                          ? WORK_TYPE_LABELS[v] ?? v
+                                          : v;
+                                  const excluded = dataFilters[col.key];
+                                  const checked = !excluded?.has(v);
+                                  return (
+                                    <label
+                                      key={v}
+                                      className="inline-flex items-center gap-1.5 cursor-pointer text-sm"
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={checked}
+                                        onChange={() => toggleDataFilter(col.key, v)}
+                                        className="rounded"
+                                      />
+                                      <span style={{ color: "var(--text-primary)" }}>{label}</span>
+                                    </label>
+                                  );
+                                })}
+                                {(!distinctValues[col.key] || distinctValues[col.key].length === 0) && (
+                                  <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>데이터 없음</span>
+                                )}
+                              </div>
+                            )}
+                            {col.hasDataFilter === "created_at" && col.key === "created_at" && (
+                              <div className="space-y-3">
+                                <div>
+                                  <div className="text-xs font-medium mb-1.5" style={{ color: "var(--text-tertiary)" }}>
+                                    년도 (체크한 연도만 포함)
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {(distinctValues.created_at_year ?? []).map((yearStr) => {
+                                      const excluded = dataFilters["created_at_year"];
+                                      const checked = !excluded?.has(yearStr);
+                                      return (
+                                        <label
+                                          key={yearStr}
+                                          className="inline-flex items-center gap-1.5 cursor-pointer text-sm"
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={checked}
+                                            onChange={() => toggleDataFilter("created_at_year", yearStr)}
+                                            className="rounded"
+                                          />
+                                          <span style={{ color: "var(--text-primary)" }}>{yearStr}년</span>
+                                        </label>
+                                      );
+                                    })}
+                                    {(!distinctValues.created_at_year || distinctValues.created_at_year.length === 0) && (
+                                      <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>데이터 없음</span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="flex items-center justify-between gap-2 text-xs mb-1.5" style={{ color: "var(--text-tertiary)" }}>
+                                    <span>월·일 범위: {formatDayOfYearPercent(createdDayRangePercent[0])} ~ {formatDayOfYearPercent(createdDayRangePercent[1])}</span>
+                                  </div>
+                                  <DateRangeBar value={createdDayRangePercent} onChange={setCreatedDayRangePercent} />
+                                </div>
+                              </div>
                             )}
                           </div>
                         </div>
-                        <div>
-                          <div className="flex items-center justify-between gap-2 text-xs mb-1.5" style={{ color: "var(--text-tertiary)" }}>
-                            <span>월·일 기간: {formatDayOfYearPercent(createdDayRangePercent[0])} ~ {formatDayOfYearPercent(createdDayRangePercent[1])}</span>
-                          </div>
-                          <DateRangeBar value={createdDayRangePercent} onChange={setCreatedDayRangePercent} />
-                        </div>
-                      </div>
-                    )}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </Card>
       )}
 
       <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
-        필터 결과: {filteredTickets.length}건 / 전체 {tickets.length}건
+        표시 중: <strong style={{ color: "var(--text-primary)" }}>{filteredTickets.length}</strong>건
+        {filteredTickets.length !== tickets.length && ` (전체 ${tickets.length}건 중 필터 적용)`}
       </div>
 
       <Card padding="none">
@@ -516,7 +585,7 @@ export default function AdminDataPage() {
                 {filteredTickets.length === 0 && (
                   <tr>
                     <td colSpan={visibleColDefs.length} className="px-4 py-8 text-center" style={{ color: "var(--text-tertiary)" }}>
-                      데이터가 없습니다.
+                      {tickets.length === 0 ? "티켓 데이터가 없습니다." : "조건에 맞는 티켓이 없습니다. 필터를 조정해 보세요."}
                     </td>
                   </tr>
                 )}
