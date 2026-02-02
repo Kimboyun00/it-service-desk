@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from ..db import get_session
 from ..core.current_user import get_current_user
 from ..models.event import TicketEvent
-from ..models.ticket import Ticket
+from ..models.ticket import Ticket, TicketAssignee
 from ..models.comment import TicketComment
 from ..models.user import User
 from ..models.contact_assignment_member import ContactAssignmentMember
@@ -46,6 +46,8 @@ def _status_label(value: str | None) -> str:
 def _event_message(event: TicketEvent) -> str:
     if event.type == "ticket_created":
         return "요청이 접수되었습니다."
+    if event.type == "reopened":
+        return "재요청이 접수되었습니다."
     if event.type == "status_changed":
         if event.from_value or event.to_value:
             before = _status_label(event.from_value)
@@ -102,7 +104,41 @@ def list_notifications(
     if is_staff(user):
         cutoff = datetime.utcnow() - timedelta(days=30)
 
-        # 2) New tickets for staff (카테고리 담당자만)
+        # 2) Reopened tickets for assignees (재요청 접수)
+        reopen_stmt = (
+            select(TicketEvent, Ticket)
+            .join(Ticket, TicketEvent.ticket_id == Ticket.id)
+            .where(TicketEvent.type == "reopened")
+            .where(TicketEvent.created_at >= cutoff)
+            .order_by(desc(TicketEvent.created_at), desc(TicketEvent.id))
+            .limit(50)
+        )
+        for event, ticket in session.execute(reopen_stmt).all():
+            assignee_emp_nos = set(
+                session.scalars(select(TicketAssignee.emp_no).where(TicketAssignee.ticket_id == ticket.id)).all()
+            )
+            if ticket.assignee_emp_no:
+                assignee_emp_nos.add(ticket.assignee_emp_no)
+            if user.emp_no not in assignee_emp_nos:
+                continue
+            created_at = event.created_at or ticket.updated_at or ticket.created_at
+            if not created_at:
+                continue
+            if event.id in seen_event_ids:
+                continue
+            items.append(
+                NotificationOut(
+                    id=f"event:{event.id}",
+                    ticket_id=ticket.id,
+                    ticket_title=ticket.title,
+                    type="reopened",
+                    message=f"재요청이 접수되었습니다 - #{ticket.id}",
+                    created_at=created_at,
+                )
+            )
+            seen_event_ids.add(event.id)
+
+        # 3) New tickets for staff (카테고리 담당자만)
         new_stmt = (
             select(Ticket)
             .join(ContactAssignmentMember, ContactAssignmentMember.category_id == Ticket.category_id)
@@ -123,7 +159,7 @@ def list_notifications(
                 )
             )
 
-        # 3) Requester comments on assigned tickets (SMTP notify_requester_commented와 동일 조건)
+        # 4) Requester comments on assigned tickets (SMTP notify_requester_commented와 동일 조건)
         comment_stmt = (
             select(TicketComment, Ticket, User)
             .join(Ticket, TicketComment.ticket_id == Ticket.id)

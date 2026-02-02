@@ -10,6 +10,9 @@ class TicketComment(Base):
     ticket_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("tickets.id", ondelete="CASCADE")
     )
+    reopen_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("ticket_reopens.id", ondelete="SET NULL"), nullable=True
+    )
     author_emp_no: Mapped[str] = mapped_column(
         String(50), ForeignKey("users.emp_no")
     )

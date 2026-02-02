@@ -22,6 +22,7 @@ type Attachment = {
   size: number;
   ticket_id: number | null;
   comment_id: number | null;
+  reopen_id: number | null;
   uploaded_emp_no: string;
   created_at?: string | null;
 };
@@ -29,6 +30,7 @@ type Attachment = {
 type Comment = {
   id: number;
   ticket_id: number;
+  reopen_id: number | null;
   author_emp_no: string;
   author?: UserSummary | null;
   title: string;
@@ -76,11 +78,20 @@ type UserSummary = {
   role?: string | null;
 };
 
+type Reopen = {
+  id: number;
+  ticket_id: number;
+  description: TiptapDoc;
+  requester_emp_no: string;
+  created_at: string;
+};
+
 type TicketDetail = {
   ticket: Ticket;
   comments: Comment[];
   events: Event[];
   attachments: Attachment[];
+  reopens: Reopen[];
 };
 
 const MAX_COMMENT_FILE_BYTES = 25 * 1024 * 1024;
@@ -161,6 +172,7 @@ function formatCategoryList(ids: number[] | null | undefined, map: Record<number
 const EVENT_TYPE_LABELS: Record<string, string> = {
   ticket_created: "요청 접수",
   status_changed: "상태 변경",
+  reopened: "재요청 접수",
 };
 
 function eventLabel(type: string) {
@@ -174,9 +186,10 @@ const STATUS_LABELS_FOR_EVENT: Record<string, string> = {
   closed: "사업 검토",
 };
 
-/** 처리이력 내용: 요청 접수·상태 변경만 */
+/** 처리이력 내용: 요청 접수·상태 변경·재요청만 */
 function eventContent(e: Event): string {
   if (e.type === "ticket_created") return "요청이 접수되었습니다.";
+  if (e.type === "reopened") return "재요청이 접수되었습니다.";
   if (e.type === "status_changed") {
     const n = e.note?.trim();
     if (n) return n;
@@ -248,6 +261,8 @@ export default function TicketDetailPage() {
   const [commentError, setCommentError] = useState<string | null>(null);
   const [commentNotifyEmail, setCommentNotifyEmail] = useState(true);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [bodyTab, setBodyTab] = useState<"initial" | number>("initial");
+  const initialTabSetForTicket = useRef<number | null>(null);
   const commentFileInputRef = useRef<HTMLInputElement | null>(null);
   const commentsEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -257,13 +272,44 @@ export default function TicketDetailPage() {
     enabled: Number.isFinite(ticketId),
   });
 
-  // 처리이력: 요청 접수·상태 변경만, 시간순(과거 → 현재) 정렬
+  useEffect(() => {
+    if (!data?.ticket?.id) return;
+    if (initialTabSetForTicket.current === data.ticket.id) return;
+    initialTabSetForTicket.current = data.ticket.id;
+    if ((data.reopens?.length ?? 0) > 0 && data.ticket.status === "open") {
+      setBodyTab(data.reopens.length - 1);
+    } else {
+      setBodyTab("initial");
+    }
+  }, [data?.ticket?.id, data?.reopens?.length, data?.ticket?.status]);
+
+  // 처리이력: 요청 접수·상태 변경·재요청만, 시간순(과거 → 현재) 정렬
   const filteredEvents = useMemo(() => {
     if (!data?.events) return [];
     return [...data.events]
-      .filter((e) => e.type === "ticket_created" || e.type === "status_changed")
+      .filter((e) => e.type === "ticket_created" || e.type === "status_changed" || e.type === "reopened")
       .sort((a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime());
   }, [data?.events]);
+
+  const reopens = data?.reopens ?? [];
+  const currentReopenId = bodyTab === "initial" ? null : reopens[bodyTab]?.id ?? null;
+  const bodyContent =
+    bodyTab === "initial"
+      ? data?.ticket?.description
+      : reopens[bodyTab]?.description;
+  const ticketAttachmentsFiltered = useMemo(() => {
+    if (!data?.attachments) return [];
+    const list = data.attachments.filter((a) => !a.comment_id);
+    if (reopens.length === 0) return list;
+    if (bodyTab === "initial") return list.filter((a) => !(a as Attachment).reopen_id);
+    return list.filter((a) => (a as Attachment).reopen_id === currentReopenId);
+  }, [data?.attachments, bodyTab, currentReopenId, reopens.length]);
+  const commentsFiltered = useMemo(() => {
+    if (!data?.comments) return [];
+    if (reopens.length === 0) return data.comments;
+    if (bodyTab === "initial") return data.comments.filter((c) => !c.reopen_id);
+    return data.comments.filter((c) => c.reopen_id === currentReopenId);
+  }, [data?.comments, bodyTab, currentReopenId, reopens.length]);
 
   // 완료일: 상태가 '완료'(resolved)일 때, status_changed → resolved 이벤트 중 가장 최근 시각
   const resolvedAt = useMemo(() => {
@@ -318,6 +364,7 @@ export default function TicketDetailPage() {
           title: "답변",
           body: commentBody,
           notify_email: commentNotifyEmail,
+          reopen_id: currentReopenId ?? undefined,
         },
       });
 
@@ -400,7 +447,6 @@ export default function TicketDetailPage() {
   const t = data.ticket;
   const statusInfo = statusMeta(t.status);
   const priorityInfo = priorityMeta(t.priority);
-  const ticketAttachments = data.attachments.filter((a) => !a.comment_id);
 
   return (
     <>
@@ -599,7 +645,36 @@ export default function TicketDetailPage() {
 
         <Card>
           <CardHeader>
-            <h2 
+            {reopens.length > 0 && (
+              <div className="flex flex-wrap gap-2 border-b pb-3 mb-3" style={{ borderColor: "var(--border-default)" }}>
+                <button
+                  type="button"
+                  onClick={() => setBodyTab("initial")}
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                  style={{
+                    backgroundColor: bodyTab === "initial" ? "var(--color-primary-100)" : "var(--bg-subtle)",
+                    color: bodyTab === "initial" ? "var(--color-primary-700)" : "var(--text-secondary)",
+                  }}
+                >
+                  최초 요청
+                </button>
+                {reopens.map((_, idx) => (
+                  <button
+                    key={reopens[idx].id}
+                    type="button"
+                    onClick={() => setBodyTab(idx)}
+                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                    style={{
+                      backgroundColor: bodyTab === idx ? "var(--color-primary-100)" : "var(--bg-subtle)",
+                      color: bodyTab === idx ? "var(--color-primary-700)" : "var(--text-secondary)",
+                    }}
+                  >
+                    재요청 #{idx + 1}
+                  </button>
+                ))}
+              </div>
+            )}
+            <h2
               className="text-base font-semibold"
               style={{ color: "var(--text-primary)" }}
             >
@@ -608,10 +683,10 @@ export default function TicketDetailPage() {
           </CardHeader>
           <CardBody padding="lg">
             <div className="prose max-w-none text-sm" style={{ color: "var(--text-primary)" }}>
-              <TiptapViewer value={t.description} />
+              <TiptapViewer value={bodyContent ?? EMPTY_DOC} />
             </div>
 
-            {ticketAttachments.length > 0 && (
+            {ticketAttachmentsFiltered.length > 0 && (
               <>
                 <div 
                   className="border-t my-4"
@@ -628,7 +703,7 @@ export default function TicketDetailPage() {
                     className="border rounded-lg"
                     style={{ borderColor: "var(--border-default)" }}
                   >
-                    {ticketAttachments.map((a, idx) => (
+                    {ticketAttachmentsFiltered.map((a, idx) => (
                       <div 
                         key={a.id} 
                         className="flex items-center justify-between px-4 py-3 transition-colors"
@@ -685,10 +760,10 @@ export default function TicketDetailPage() {
           </CardBody>
         </Card>
 
-        {data.comments.length === 0 ? (
+        {commentsFiltered.length === 0 ? (
           <Card>
             <CardBody padding="lg">
-              <div 
+              <div
                 className="text-sm text-center py-8"
                 style={{ color: "var(--text-tertiary)" }}
               >
@@ -698,7 +773,7 @@ export default function TicketDetailPage() {
           </Card>
         ) : (
           <>
-            {data.comments.map((c, index) => {
+            {commentsFiltered.map((c) => {
               const isMyComment = me.emp_no === c.author_emp_no;
               const commentAttachments = data.attachments.filter((a) => a.comment_id === c.id);
               return (

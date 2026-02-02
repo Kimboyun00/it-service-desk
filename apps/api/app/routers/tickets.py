@@ -6,11 +6,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, desc
 
 from ..db import get_session
-from ..models.ticket import Ticket, TicketAssignee, TicketCategoryLink
+from ..models.ticket import Ticket, TicketReopen, TicketAssignee, TicketCategoryLink
 from ..models.project import Project
 from ..models.project_member import ProjectMember
 from ..models.ticket_category import TicketCategory
 from ..schemas.ticket import TicketCreateIn, TicketOut, TicketUpdateIn, TicketAdminMetaUpdateIn
+from ..schemas.reopen import ReopenCreateIn, ReopenOut
 from ..core.current_user import get_current_user
 from ..models.user import User
 from ..models.event import TicketEvent
@@ -32,6 +33,7 @@ from ..services.mail_events import (
     notify_admins_ticket_created,
     notify_requester_status_changed,
     notify_requester_ticket_created,
+    notify_assignees_reopen_received,
 )
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
@@ -193,6 +195,7 @@ def serialize_ticket(
         "requester": requester,
         "assignee": users.get(t.assignee_emp_no) if t.assignee_emp_no else None,
         "assignees": assignees,
+        "reopen_count": getattr(t, "reopen_count", 0) or 0,
     }
 
 
@@ -288,6 +291,37 @@ def create_ticket(
     return serialize_ticket(t, users, projects, {t.id: category_ids}, assignee_map)
 
 
+@router.get("/my-completed")
+def get_my_completed(
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    """본인이 요청자이고 상태가 완료(resolved) 또는 사업검토(closed)인 티켓 목록 (재요청용)."""
+    stmt = (
+        select(Ticket)
+        .where(Ticket.requester_emp_no == user.emp_no)
+        .where(Ticket.status.in_(["resolved", "closed"]))
+        .order_by(desc(Ticket.updated_at))
+    )
+    tickets = list(session.scalars(stmt).all())
+    if not tickets:
+        return []
+    ticket_ids = [t.id for t in tickets]
+    category_map = load_ticket_category_map(session, ticket_ids)
+    assignee_map = load_ticket_assignee_map(session, ticket_ids)
+    user_ids: set[str] = set()
+    for t in tickets:
+        user_ids.add(t.requester_emp_no)
+        if t.assignee_emp_no:
+            user_ids.add(t.assignee_emp_no)
+        for emp_no in assignee_map.get(t.id, []):
+            user_ids.add(emp_no)
+    users = build_user_map(session, user_ids)
+    project_ids = {t.project_id for t in tickets if t.project_id}
+    projects = build_project_map(session, list(project_ids))
+    return [serialize_ticket(t, users, projects, category_map, assignee_map) for t in tickets]
+
+
 @router.get("/{ticket_id}", response_model=TicketOut)
 def get_ticket(
     ticket_id: int,
@@ -315,6 +349,76 @@ def get_ticket(
     project_ids: set[int] = {t.project_id} if t.project_id else set()
     projects = build_project_map(session, project_ids)
     return serialize_ticket(t, users, projects, category_map, assignee_map)
+
+
+@router.post("/{ticket_id}/reopen")
+def reopen_ticket(
+    ticket_id: int,
+    payload: ReopenCreateIn,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    """재요청: 완료/사업검토된 티켓을 다시 열고 재요청 사유를 등록한다."""
+    t = session.get(Ticket, ticket_id)
+    if not t:
+        raise HTTPException(status_code=404, detail="Not found")
+    if t.requester_emp_no != user.emp_no:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    if t.status not in ("resolved", "closed"):
+        raise HTTPException(status_code=422, detail="완료 또는 사업검토 상태인 요청만 재요청할 수 있습니다.")
+    if is_empty_doc(payload.description):
+        raise HTTPException(status_code=422, detail="재요청 사유를 입력해주세요.")
+
+    now = datetime.utcnow()
+    r = TicketReopen(
+        ticket_id=ticket_id,
+        description=dump_tiptap(payload.description),
+        requester_emp_no=user.emp_no,
+    )
+    session.add(r)
+    session.flush()
+    try:
+        next_doc = finalize_ticket_editor_images(payload.description, ticket=t)
+        r.description = dump_tiptap(next_doc)
+    except Exception:
+        logging.getLogger(__name__).exception("reopen finalize images ticket_id=%s", ticket_id)
+
+    old_status = t.status
+    t.status = "open"
+    t.reopen_count = getattr(t, "reopen_count", 0) + 1
+    t.updated_at = now
+    ev = TicketEvent(
+        ticket_id=ticket_id,
+        actor_emp_no=user.emp_no,
+        type="reopened",
+        from_value=old_status,
+        to_value="open",
+        note=json.dumps({"reopen_id": r.id}, ensure_ascii=False),
+    )
+    session.add(ev)
+    session.commit()
+    session.refresh(t)
+
+    category_map = load_ticket_category_map(session, [t.id])
+    assignee_map = load_ticket_assignee_map(session, [t.id])
+    assignee_emp_nos = assignee_map.get(t.id, []) or ([t.assignee_emp_no] if t.assignee_emp_no else [])
+    user_ids = {t.requester_emp_no} | set(assignee_emp_nos)
+    users = build_user_map(session, user_ids)
+    projects = build_project_map(session, [t.project_id] if t.project_id else [])
+
+    try:
+        category_label = get_ticket_category_labels(session, t) or "-"
+        notify_requester_ticket_created(t, user, category_label=category_label)
+        if assignee_emp_nos:
+            assignees = [u for u in users.values() if u.emp_no in assignee_emp_nos]
+            notify_assignees_reopen_received(t, user, assignees)
+    except Exception:
+        logging.getLogger(__name__).exception("재요청 메일 발송 실패 ticket_id=%s", ticket_id)
+
+    return {
+        "ticket": serialize_ticket(t, users, projects, category_map, {t.id: assignee_emp_nos}),
+        "reopen_id": r.id,
+    }
 
 
 @router.patch("/{ticket_id}", response_model=TicketOut)
@@ -919,13 +1023,25 @@ def get_ticket_detail(
     )
     events = list(session.scalars(events_stmt).all())
 
-    att_stmt = select(Attachment).where(Attachment.ticket_id == ticket_id).order_by(Attachment.id.asc())
     attachments = (
         session.query(Attachment)
         .filter(Attachment.ticket_id == ticket_id)
         .order_by(Attachment.id.desc())
         .all()
     )
+
+    reopens_stmt = select(TicketReopen).where(TicketReopen.ticket_id == ticket_id).order_by(TicketReopen.id.asc())
+    reopens = list(session.scalars(reopens_stmt).all())
+    reopens_payload = [
+        {
+            "id": r.id,
+            "ticket_id": r.ticket_id,
+            "description": load_tiptap(r.description),
+            "requester_emp_no": r.requester_emp_no,
+            "created_at": r.created_at,
+        }
+        for r in reopens
+    ]
 
     user_ids: set[str] = {ticket.requester_emp_no}
     if ticket.assignee_emp_no:
@@ -943,6 +1059,7 @@ def get_ticket_detail(
         {
             "id": c.id,
             "ticket_id": c.ticket_id,
+            "reopen_id": getattr(c, "reopen_id", None),
             "author_emp_no": c.author_emp_no,
             "author": users.get(c.author_emp_no),
             "title": c.title or "",
@@ -958,6 +1075,7 @@ def get_ticket_detail(
         "comments": comment_payload,
         "events": events,
         "attachments": attachments,
+        "reopens": reopens_payload,
     }
 
 
@@ -985,6 +1103,7 @@ def add_ticket_attachment(
         size=payload.size,
         ticket_id=ticket_id,
         comment_id=None,
+        reopen_id=getattr(payload, "reopen_id", None),
         uploaded_emp_no=user.emp_no,
     )
     session.add(a)

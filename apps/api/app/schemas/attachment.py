@@ -7,6 +7,7 @@ class AttachmentRegisterIn(BaseModel):
     filename: str
     content_type: str
     size: int = 0
+    reopen_id: int | None = None
 
 class AttachmentOut(BaseModel):
     id: int
@@ -16,6 +17,7 @@ class AttachmentOut(BaseModel):
     size: int
     ticket_id: Optional[int] = None
     comment_id: Optional[int] = None
+    reopen_id: Optional[int] = None
     notice_id: Optional[int] = None
     uploaded_emp_no: str
     created_at: datetime | None = None

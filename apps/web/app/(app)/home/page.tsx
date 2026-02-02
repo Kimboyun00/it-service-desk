@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, apiForm } from "@/lib/api";
 import { useTicketCategories } from "@/lib/use-ticket-categories";
 import { EMPTY_DOC, isEmptyDoc, TiptapDoc } from "@/lib/tiptap";
@@ -19,6 +19,7 @@ import {
   Paperclip,
   X,
   ChevronRight,
+  RotateCcw,
 } from "lucide-react";
 
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), { ssr: false });
@@ -42,6 +43,10 @@ type TicketFormState = {
 type TicketOut = {
   id: number;
   title: string;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+  project_name?: string | null;
 };
 
 type Project = {
@@ -57,7 +62,10 @@ type StepId =
   | "title"
   | "category"
   | "description"
-  | "review";
+  | "review"
+  | "reopen_list"
+  | "reopen_description"
+  | "reopen_review";
 
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 
@@ -139,7 +147,17 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<File[]>([]);
 
-  useUnsavedChangesWarning(isDirty);
+  const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
+  const [reopenDescription, setReopenDescription] = useState<TiptapDoc>(EMPTY_DOC);
+  const [reopenAttachments, setReopenAttachments] = useState<File[]>([]);
+
+  const { data: completedTickets = [], isLoading: completedLoading } = useQuery({
+    queryKey: ["tickets", "my-completed"],
+    queryFn: () => api<TicketOut[]>("/tickets/my-completed"),
+    enabled: currentStep === "reopen_list",
+  });
+
+  useUnsavedChangesWarning(isDirty || (currentStep.startsWith("reopen") && (selectedTicketId != null || !isEmptyDoc(reopenDescription))));
 
   useEffect(() => {
     let active = true;
@@ -182,7 +200,7 @@ export default function HomePage() {
     });
   }, [categories]);
 
-  const steps: StepId[] = [
+  const newRequestSteps: StepId[] = [
     "welcome",
     "work_type",
     "title",
@@ -190,9 +208,10 @@ export default function HomePage() {
     "description",
     "review",
   ];
-
+  const reopenSteps: StepId[] = ["reopen_list", "reopen_description", "reopen_review"];
+  const steps = reopenSteps.includes(currentStep) ? reopenSteps : newRequestSteps;
   const currentStepIndex = steps.indexOf(currentStep);
-  const progress = ((currentStepIndex + 1) / steps.length) * 100;
+  const progress = currentStepIndex >= 0 ? ((currentStepIndex + 1) / steps.length) * 100 : 0;
 
   const createTicket = useMutation({
     mutationFn: async ({ form: payload, files }: { form: TicketCreateIn; files: File[] }) => {
@@ -231,6 +250,40 @@ export default function HomePage() {
         return;
       }
       setError(message);
+    },
+  });
+
+  const reopenTicket = useMutation({
+    mutationFn: async ({
+      ticketId,
+      description,
+      files,
+    }: {
+      ticketId: number;
+      description: TiptapDoc;
+      files: File[];
+    }) => {
+      const res = await api<{ ticket: TicketOut; reopen_id: number }>(`/tickets/${ticketId}/reopen`, {
+        method: "POST",
+        body: { description },
+      });
+      if (files.length) {
+        for (const file of files) {
+          const fd = new FormData();
+          fd.append("file", file);
+          await apiForm(`/tickets/${ticketId}/attachments/upload?reopen_id=${res.reopen_id}`, fd);
+        }
+      }
+      return res;
+    },
+    onSuccess: (res) => {
+      setSelectedTicketId(null);
+      setReopenDescription(EMPTY_DOC);
+      setReopenAttachments([]);
+      router.replace(`/tickets/${res.ticket.id}`);
+    },
+    onError: (err: any) => {
+      setError(err?.message ?? "재요청 제출에 실패했습니다.");
     },
   });
 
@@ -310,6 +363,10 @@ export default function HomePage() {
 
   function prevStep() {
     setError(null);
+    if (currentStep === "reopen_list") {
+      setCurrentStep("welcome");
+      return;
+    }
     const prevIndex = currentStepIndex - 1;
     if (prevIndex >= 0) {
       setCurrentStep(steps[prevIndex]);
@@ -329,6 +386,12 @@ export default function HomePage() {
       case "description":
         return !isEmptyDoc(form.description);
       case "review":
+        return true;
+      case "reopen_list":
+        return selectedTicketId != null;
+      case "reopen_description":
+        return !isEmptyDoc(reopenDescription);
+      case "reopen_review":
         return true;
       default:
         return false;
@@ -422,22 +485,36 @@ export default function HomePage() {
                     <FileText className="w-10 h-10 text-white" />
                   </div>
                   <h1 className="text-5xl font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>
-                    새 요청 생성
+                    요청하기
                   </h1>
                   <p className="text-xl" style={{ color: "var(--text-secondary)" }}>
                     IT 서비스 요청을 간편하게 작성하세요
                   </p>
                 </div>
-                <button
-                  onClick={nextStep}
-                  className="inline-flex items-center gap-2 px-8 py-4 rounded-xl text-lg font-semibold text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
-                  style={{
-                    background: "linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%)",
-                  }}
-                >
-                  시작하기
-                  <ArrowRight className="w-5 h-5" />
-                </button>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <button
+                    onClick={nextStep}
+                    className="inline-flex items-center gap-2 px-8 py-4 rounded-xl text-lg font-semibold text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                    style={{
+                      background: "linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%)",
+                    }}
+                  >
+                    새 요청
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentStep("reopen_list")}
+                    className="inline-flex items-center gap-2 px-8 py-4 rounded-xl text-lg font-semibold border-2 transition-all transform hover:scale-105"
+                    style={{
+                      borderColor: "var(--color-primary-500)",
+                      color: "var(--color-primary-600)",
+                      backgroundColor: "var(--bg-card)",
+                    }}
+                  >
+                    이전 요청 재요청
+                    <RotateCcw className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
             )}
 
@@ -821,6 +898,233 @@ export default function HomePage() {
               </div>
             )}
 
+            {currentStep === "reopen_list" && (
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
+                    1단계 / 3단계
+                  </p>
+                  <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
+                    이전 요청 재요청
+                  </h2>
+                  <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
+                    완료 또는 사업검토된 요청 중 재요청할 항목을 선택하세요
+                  </p>
+                </div>
+                {completedLoading && (
+                  <div className="py-8 text-center text-sm" style={{ color: "var(--text-tertiary)" }}>
+                    목록을 불러오는 중...
+                  </div>
+                )}
+                {!completedLoading && completedTickets.length === 0 && (
+                  <div
+                    className="rounded-2xl border border-dashed py-12 text-center"
+                    style={{ borderColor: "var(--border-default)", color: "var(--text-tertiary)" }}
+                  >
+                    재요청할 수 있는 완료/사업검토 요청이 없습니다.
+                  </div>
+                )}
+                {!completedLoading && completedTickets.length > 0 && (
+                  <div className="grid grid-cols-1 gap-3 max-h-[360px] overflow-y-auto pr-1">
+                    {completedTickets.map((t) => {
+                      const isSelected = selectedTicketId === t.id;
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedTicketId(t.id);
+                            setTimeout(nextStep, 200);
+                          }}
+                          className="group p-4 rounded-xl border-2 transition-all text-left flex items-center justify-between"
+                          style={{
+                            borderColor: isSelected ? "var(--color-primary-500)" : "var(--border-default)",
+                            backgroundColor: isSelected ? "var(--bg-selected)" : "var(--bg-card)",
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            {isSelected && (
+                              <CheckCircle2 className="w-5 h-5 shrink-0" style={{ color: "var(--color-primary-600)" }} />
+                            )}
+                            <div>
+                              <div className="text-base font-medium" style={{ color: "var(--text-primary)" }}>
+                                #{t.id} {t.title}
+                              </div>
+                              {t.project_name && (
+                                <div className="text-xs mt-1" style={{ color: "var(--text-tertiary)" }}>
+                                  {t.project_name}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <ChevronRight className="w-5 h-5 shrink-0" style={{ color: "var(--text-tertiary)" }} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {currentStep === "reopen_description" && selectedTicketId != null && (
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
+                    2단계 / 3단계
+                  </p>
+                  <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
+                    재요청 사유
+                  </h2>
+                  <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
+                    재요청하는 이유와 상황을 작성해주세요
+                  </p>
+                </div>
+                <div
+                  className="rounded-xl border p-4"
+                  style={{ borderColor: "var(--border-default)", backgroundColor: "var(--bg-subtle)" }}
+                >
+                  <p className="text-sm font-medium mb-1" style={{ color: "var(--text-tertiary)" }}>
+                    선택한 요청
+                  </p>
+                  <p className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
+                    #{selectedTicketId}{" "}
+                    {completedTickets.find((t) => t.id === selectedTicketId)?.title ?? ""}
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <RichTextEditor
+                    value={reopenDescription}
+                    onChange={setReopenDescription}
+                    onError={setError}
+                    placeholder="예: 동일한 문제가 다시 발생했습니다. 이번에는..."
+                    minHeight="280px"
+                  />
+                  <input
+                    id="reopen-attachment-input"
+                    type="file"
+                    multiple
+                    className="sr-only"
+                    ref={fileInputRef}
+                    onChange={(e) => {
+                      const files = e.target.files;
+                      if (files?.length) {
+                        setReopenAttachments((prev) => [...prev, ...Array.from(files)]);
+                      }
+                      e.target.value = "";
+                    }}
+                  />
+                  <div
+                    className="rounded-2xl border-2 border-dashed p-6 transition-all text-center cursor-pointer"
+                    style={{
+                      borderColor: "var(--border-default)",
+                      backgroundColor: "var(--bg-card)",
+                    }}
+                    onClick={() => document.getElementById("reopen-attachment-input")?.click()}
+                  >
+                    <Paperclip className="w-8 h-8 mx-auto mb-2" style={{ color: "var(--text-tertiary)" }} />
+                    <p className="text-base font-medium mb-1" style={{ color: "var(--text-primary)" }}>
+                      첨부파일 (선택)
+                    </p>
+                  </div>
+                  {reopenAttachments.length > 0 && (
+                    <div className="space-y-2">
+                      {reopenAttachments.map((file, idx) => (
+                        <div
+                          key={`${file.name}-${idx}`}
+                          className="flex items-center justify-between p-3 rounded-xl border"
+                          style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-default)" }}
+                        >
+                          <span className="text-sm truncate" style={{ color: "var(--text-primary)" }}>
+                            {file.name}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setReopenAttachments((p) => p.filter((_, i) => i !== idx))}
+                            className="p-1 rounded"
+                            style={{ color: "var(--text-tertiary)" }}
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {currentStep === "reopen_review" && selectedTicketId != null && (
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
+                    3단계 / 3단계
+                  </p>
+                  <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
+                    재요청 내용 확인
+                  </h2>
+                </div>
+                <div
+                  className="rounded-2xl border p-6 space-y-4"
+                  style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-default)" }}
+                >
+                  <div>
+                    <p className="text-sm font-medium mb-1" style={{ color: "var(--text-tertiary)" }}>
+                      요청
+                    </p>
+                    <p className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                      #{selectedTicketId}{" "}
+                      {completedTickets.find((t) => t.id === selectedTicketId)?.title ?? ""}
+                    </p>
+                  </div>
+                  <div className="h-px" style={{ backgroundColor: "var(--border-subtle)" }} />
+                  <div>
+                    <p className="text-sm font-medium mb-2" style={{ color: "var(--text-tertiary)" }}>
+                      재요청 사유
+                    </p>
+                    <p className="text-sm" style={{ color: "var(--text-primary)" }}>
+                      {isEmptyDoc(reopenDescription) ? "-" : "작성된 내용이 등록됩니다."}
+                    </p>
+                  </div>
+                  {reopenAttachments.length > 0 && (
+                    <>
+                      <div className="h-px" style={{ backgroundColor: "var(--border-subtle)" }} />
+                      <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
+                        첨부파일 {reopenAttachments.length}개
+                      </p>
+                    </>
+                  )}
+                </div>
+                {error && (
+                  <div
+                    className="rounded-xl border px-4 py-3 text-sm"
+                    style={{
+                      backgroundColor: "var(--color-danger-50)",
+                      borderColor: "var(--color-danger-200)",
+                      color: "var(--color-danger-700)",
+                    }}
+                  >
+                    {error}
+                  </div>
+                )}
+                <button
+                  onClick={() =>
+                    reopenTicket.mutate({
+                      ticketId: selectedTicketId,
+                      description: reopenDescription,
+                      files: reopenAttachments,
+                    })
+                  }
+                  disabled={reopenTicket.isPending}
+                  className="w-full py-4 rounded-xl text-lg font-semibold text-white"
+                  style={{
+                    background: "linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%)",
+                  }}
+                >
+                  {reopenTicket.isPending ? "제출 중..." : "재요청 제출하기"}
+                </button>
+              </div>
+            )}
+
             {currentStep === "review" && (
               <div className="space-y-8">
                 <div className="space-y-2">
@@ -939,11 +1243,11 @@ export default function HomePage() {
           </div>
 
           {/* Navigation Buttons */}
-          {currentStep !== "welcome" && (
+          {(currentStep !== "welcome" || currentStep.startsWith("reopen")) && (
             <div className="flex items-center justify-between mt-12 gap-4">
               <button
                 onClick={prevStep}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all border"
                 style={{
                   backgroundColor: "var(--bg-card)",
                   borderColor: "var(--border-default)",
@@ -960,7 +1264,7 @@ export default function HomePage() {
                 이전
               </button>
 
-              {currentStep !== "review" && (
+              {currentStep !== "review" && currentStep !== "reopen_review" && (
                 <button
                   onClick={nextStep}
                   disabled={!canProceed()}

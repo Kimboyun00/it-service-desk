@@ -59,6 +59,7 @@ def list_comments(
             CommentOut(
                 id=comment.id,
                 ticket_id=comment.ticket_id,
+                reopen_id=getattr(comment, "reopen_id", None),
                 author_emp_no=comment.author_emp_no,
                 author=None,
                 title=comment.title or "",
@@ -85,8 +86,15 @@ def create_comment(
     if is_empty_doc(body_doc):
         raise HTTPException(status_code=400, detail="Comment body is required")
 
+    reopen_id = getattr(payload, "reopen_id", None)
+    if reopen_id is not None:
+        from ..models.ticket import TicketReopen
+        r = session.get(TicketReopen, reopen_id)
+        if not r or r.ticket_id != ticket_id:
+            raise HTTPException(status_code=400, detail="Invalid reopen reference")
     comment = TicketComment(
         ticket_id=ticket_id,
+        reopen_id=reopen_id,
         author_emp_no=user.emp_no,
         title=payload.title.strip(),
         body=dump_tiptap(body_doc),

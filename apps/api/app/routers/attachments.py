@@ -60,6 +60,7 @@ async def upload_attachment(
     ticket_id: int,
     file: UploadFile = File(...),
     comment_id: int | None = Query(default=None),
+    reopen_id: int | None = Query(default=None),
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
 ):
@@ -109,6 +110,11 @@ async def upload_attachment(
         comment = session.get(TicketComment, comment_id)
         if not comment or comment.ticket_id != ticket_id:
             raise HTTPException(status_code=400, detail="Invalid comment reference")
+    if reopen_id is not None:
+        from app.models.ticket import TicketReopen
+        reopen = session.get(TicketReopen, reopen_id)
+        if not reopen or reopen.ticket_id != ticket_id:
+            raise HTTPException(status_code=400, detail="Invalid reopen reference")
 
     att = Attachment(
         key=key,
@@ -117,6 +123,7 @@ async def upload_attachment(
         size=size,
         ticket_id=ticket_id,
         comment_id=comment_id,
+        reopen_id=reopen_id,
         uploaded_emp_no=user.emp_no,
     )
     session.add(att)

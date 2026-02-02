@@ -13,6 +13,7 @@ class Attachment(Base):
 
     ticket_id: Mapped[int | None] = mapped_column(ForeignKey("tickets.id"), nullable=True)
     comment_id: Mapped[int | None] = mapped_column(ForeignKey("ticket_comments.id"), nullable=True)
+    reopen_id: Mapped[int | None] = mapped_column(ForeignKey("ticket_reopens.id", ondelete="SET NULL"), nullable=True)
     notice_id: Mapped[int | None] = mapped_column(ForeignKey("knowledge_items.id"), nullable=True)
 
     uploaded_emp_no: Mapped[str] = mapped_column(String(50), ForeignKey("users.emp_no"))

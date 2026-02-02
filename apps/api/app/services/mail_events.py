@@ -257,3 +257,38 @@ def notify_admin_commented(
         priority_label=priority_label,
         is_admin_link=False,
     )
+
+
+def notify_assignees_reopen_received(
+    ticket: Ticket,
+    requester: User,
+    assignees: list[User],
+    category_label: str | None = None,
+    work_type_label: str | None = None,
+) -> None:
+    """재요청 접수 시 담당자들에게 '재요청이 접수되었습니다 - #{ticket_id}' 메일 발송."""
+    summary = f"재요청이 접수되었습니다 - #{ticket.id}"
+    subject = _build_subject(summary)
+    requester_label = _user_label(requester, requester.emp_no)
+    for admin in assignees:
+        status_label = _status_label(ticket.status)
+        priority_label = _priority_label(ticket.priority)
+        fields = [
+            ("요청 제목", ticket.title),
+            ("카테고리", _category_value(ticket, category_label)),
+            ("작업 구분", _work_type_value(ticket, work_type_label)),
+            ("요청자", requester_label),
+        ]
+        enqueue_ticket_mail(
+            event_key=f"reopen_received:assignee:{ticket.id}:{admin.emp_no}",
+            event_type="reopen_received",
+            ticket=ticket,
+            recipient=_admin_target(admin),
+            subject=subject,
+            alert_type="재요청 접수",
+            summary=summary,
+            fields=fields,
+            status_label=status_label,
+            priority_label=priority_label,
+            is_admin_link=True,
+        )

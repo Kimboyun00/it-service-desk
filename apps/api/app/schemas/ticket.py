@@ -46,6 +46,7 @@ class TicketOut(BaseModel):
     assignees: list[UserSummaryOut] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime | None = None
+    reopen_count: int = 0
 
     class Config:
         from_attributes = True
