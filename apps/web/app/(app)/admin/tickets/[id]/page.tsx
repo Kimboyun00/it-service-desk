@@ -479,7 +479,7 @@ export default function AdminTicketDetailPage() {
     setCommentFiles((prev) => prev.filter((_, i) => i != idx));
   }
 
-  const reopens = data?.reopens ?? [];
+  const reopens = Array.isArray(data?.reopens) ? data.reopens : [];
   const currentReopenId = bodyTab === "initial" ? null : reopens[bodyTab]?.id ?? null;
   const currentReopenCreatedAt = bodyTab === "initial" ? null : reopens[bodyTab]?.created_at ?? null;
 
@@ -568,8 +568,8 @@ export default function AdminTicketDetailPage() {
       </div>
     );
   }
-  const statusInfo = statusMeta(t.status);
-  const priorityInfo = priorityMeta(t.priority);
+  const statusInfo = statusMeta(t?.status ?? "open");
+  const priorityInfo = priorityMeta(t?.priority ?? "medium");
   const attachments = data.attachments ?? [];
   const comments = data.comments ?? [];
   const ticketAttachments = attachments.filter((a) => !a.comment_id);

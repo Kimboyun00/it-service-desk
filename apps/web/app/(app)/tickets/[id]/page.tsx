@@ -277,12 +277,13 @@ export default function TicketDetailPage() {
     if (!data?.ticket?.id) return;
     if (initialTabSetForTicket.current === data.ticket.id) return;
     initialTabSetForTicket.current = data.ticket.id;
-    if ((data.reopens?.length ?? 0) > 0 && data.ticket.status === "open") {
-      setBodyTab(data.reopens.length - 1);
+    const list = Array.isArray(data.reopens) ? data.reopens : [];
+    if (list.length > 0 && data.ticket.status === "open") {
+      setBodyTab(list.length - 1);
     } else {
       setBodyTab("initial");
     }
-  }, [data?.ticket?.id, data?.reopens?.length, data?.ticket?.status]);
+  }, [data?.ticket?.id, data?.ticket?.status, data?.reopens]);
 
   // 처리이력: 요청 접수·상태 변경·재요청만, 시간순(과거 → 현재) 정렬
   const filteredEvents = useMemo(() => {
@@ -292,7 +293,7 @@ export default function TicketDetailPage() {
       .sort((a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime());
   }, [data?.events]);
 
-  const reopens = data?.reopens ?? [];
+  const reopens = Array.isArray(data?.reopens) ? data.reopens : [];
   const currentReopenId = bodyTab === "initial" ? null : reopens[bodyTab]?.id ?? null;
   const bodyContent =
     bodyTab === "initial"
@@ -446,8 +447,8 @@ export default function TicketDetailPage() {
   }
 
   const t = data.ticket;
-  const statusInfo = statusMeta(t.status);
-  const priorityInfo = priorityMeta(t.priority);
+  const statusInfo = statusMeta(t?.status ?? "open");
+  const priorityInfo = priorityMeta(t?.priority ?? "medium");
 
   // 제목 표시: 최초 요청 탭이면 [재요청] 제거, 재요청 탭이면 [재요청] 추가
   const displayTitle = useMemo(() => {
@@ -786,7 +787,7 @@ export default function TicketDetailPage() {
           <>
             {commentsFiltered.map((c) => {
               const isMyComment = me.emp_no === c.author_emp_no;
-              const commentAttachments = data.attachments.filter((a) => a.comment_id === c.id);
+              const commentAttachments = (data?.attachments ?? []).filter((a) => a.comment_id === c.id);
               return (
                 <Card key={c.id}>
                   <CardHeader>
