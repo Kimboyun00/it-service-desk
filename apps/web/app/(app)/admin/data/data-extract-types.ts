@@ -6,7 +6,6 @@ export type Ticket = {
   id: number;
   title: string;
   status: string;
-  priority: string;
   work_type?: string | null;
   category_id?: number | null;
   category_ids?: number[];
@@ -18,7 +17,7 @@ export type Ticket = {
   updated_at?: string | null;
   resolved_at?: string | null;
   closed_at?: string | null;
-  reopen_count?: number;
+  parent_ticket_id?: number | null;
   requester?: { kor_name?: string | null; title?: string | null; department?: string | null } | null;
   assignee?: { kor_name?: string | null } | null;
   assignees?: { kor_name?: string | null }[] | null;
@@ -35,7 +34,6 @@ export const COLUMN_DEFS: ColDef[] = [
   { key: "id", label: "ID", section: "기본정보", hasDataFilter: false },
   { key: "title", label: "제목", section: "기본정보", hasDataFilter: false },
   { key: "status", label: "상태", section: "기본정보", hasDataFilter: true },
-  { key: "priority", label: "우선순위", section: "기본정보", hasDataFilter: true },
   { key: "work_type", label: "작업유형", section: "기본정보", hasDataFilter: true },
   { key: "project_name", label: "프로젝트", section: "프로젝트·분류", hasDataFilter: true },
   { key: "category_display", label: "카테고리", section: "프로젝트·분류", hasDataFilter: true },
@@ -45,20 +43,14 @@ export const COLUMN_DEFS: ColDef[] = [
   { key: "assignee_display", label: "담당자", section: "담당", hasDataFilter: true },
   { key: "created_at", label: "작성일시", section: "일시·재요청", hasDataFilter: "created_at" },
   { key: "updated_at", label: "완료일시", section: "일시·재요청", hasDataFilter: false },
-  { key: "reopen_count", label: "재요청 횟수", section: "일시·재요청", hasDataFilter: false },
+  { key: "is_reopen", label: "재요청 여부", section: "일시·재요청", hasDataFilter: false },
 ];
 
 export const STATUS_LABELS: Record<string, string> = {
-  open: "접수",
+  open: "대기",
   in_progress: "진행",
   resolved: "완료",
   closed: "사업검토",
-};
-
-export const PRIORITY_LABELS: Record<string, string> = {
-  low: "낮음",
-  medium: "보통",
-  high: "높음",
 };
 
 export const WORK_TYPE_LABELS: Record<string, string> = {
@@ -70,7 +62,6 @@ export const WORK_TYPE_LABELS: Record<string, string> = {
 
 export function getDisplayLabel(key: string, value: string): string {
   if (key === "status") return STATUS_LABELS[value] ?? value;
-  if (key === "priority") return PRIORITY_LABELS[value] ?? value;
   if (key === "work_type") return WORK_TYPE_LABELS[value] ?? value;
   return value;
 }
@@ -122,7 +113,8 @@ export function getValue(
     if (t.status === "closed" && t.closed_at) return formatDateTimeISO(t.closed_at);
     return "-";
   }
-  if (key === "reopen_count") return String(t.reopen_count ?? 0);
+  if (key === "is_reopen") return t.parent_ticket_id != null ? "재요청" : "신규요청";
+  if (key === "status") return STATUS_LABELS[t.status] ?? t.status ?? "-";
   const v = (t as Record<string, unknown>)[key];
   if (v == null) return "-";
   if (typeof v === "string") return v;

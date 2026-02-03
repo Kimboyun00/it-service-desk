@@ -247,7 +247,7 @@ export default function AdminTicketsPage() {
         const sa = STATUS_SORT[a.status] ?? 9;
         const sb = STATUS_SORT[b.status] ?? 9;
         if (sa !== sb) return sa - sb;
-        return toTime(a.created_at) - toTime(b.created_at);
+        return toTime(b.created_at) - toTime(a.created_at);
       }
       if (sortKey === "id") return a.id - b.id;
       if (sortKey === "title") return compareText(a.title, b.title);
@@ -272,6 +272,7 @@ export default function AdminTicketsPage() {
       return 0;
     });
 
+    if (sortKey === "default") return base;
     return sortDir === "asc" ? base : base.reverse();
   }, [filtered, sortKey, sortDir, categoryMap, staffOptions]);
 

@@ -3,7 +3,7 @@ import logging
 import json
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, case
 
 from ..db import get_session
 from ..models.ticket import Ticket, TicketReopen, TicketAssignee, TicketCategoryLink
@@ -1076,7 +1076,19 @@ def list_tickets(
             TicketAssignee.emp_no == assignee_emp_no
         )
 
-    stmt = stmt.order_by(desc(Ticket.id)).limit(limit).offset(offset)
+    # 정렬: 상태 필터 없으면 대기→진행→완료→사업검토 순, 각 상태 내에서는 생성일 최신순
+    # 상태 필터 있으면(예: tickets/resolved, tickets/review) 생성일 최신순만
+    if status is not None:
+        stmt = stmt.order_by(desc(Ticket.created_at)).limit(limit).offset(offset)
+    else:
+        status_order = case(
+            (Ticket.status == "open", 0),
+            (Ticket.status == "in_progress", 1),
+            (Ticket.status == "resolved", 2),
+            (Ticket.status == "closed", 3),
+            else_=4,
+        )
+        stmt = stmt.order_by(status_order.asc(), desc(Ticket.created_at)).limit(limit).offset(offset)
 
     tickets = list(session.scalars(stmt).all())
     ticket_ids = [t.id for t in tickets]
@@ -1172,6 +1184,7 @@ def get_ticket_detail(
 
     category_map = load_ticket_category_map(session, [ticket.id])
     parent_ticket_summary = None
+    parent_ticket_events = None
     parent_id = getattr(ticket, "parent_ticket_id", None)
     if parent_id:
         parent = session.get(Ticket, parent_id)
@@ -1180,7 +1193,16 @@ def get_ticket_detail(
                 "id": parent.id,
                 "title": parent.title,
                 "description": load_tiptap(parent.description),
+                "created_at": parent.created_at,
+                "resolved_at": getattr(parent, "resolved_at", None),
+                "closed_at": getattr(parent, "closed_at", None),
             }
+            parent_events_stmt = (
+                select(TicketEvent)
+                .where(TicketEvent.ticket_id == parent_id)
+                .order_by(desc(TicketEvent.created_at), desc(TicketEvent.id))
+            )
+            parent_ticket_events = list(session.scalars(parent_events_stmt).all())
     return {
         "ticket": serialize_ticket(ticket, users, projects, category_map, assignee_map),
         "comments": comment_payload,
@@ -1188,6 +1210,7 @@ def get_ticket_detail(
         "attachments": attachments,
         "reopens": reopens_payload,
         "parent_ticket_summary": parent_ticket_summary,
+        "parent_ticket_events": parent_ticket_events,
     }
 
 

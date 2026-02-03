@@ -77,6 +77,9 @@ type ParentTicketSummary = {
   id: number;
   title: string;
   description: TiptapDoc;
+  created_at?: string | null;
+  resolved_at?: string | null;
+  closed_at?: string | null;
 };
 
 type UserSummary = {
@@ -102,6 +105,7 @@ type TicketDetail = {
   attachments: Attachment[];
   reopens: Reopen[];
   parent_ticket_summary?: ParentTicketSummary | null;
+  parent_ticket_events?: Event[] | null;
 };
 
 type BodyTabId = "initial" | number | "parent";
@@ -507,11 +511,14 @@ export default function AdminTicketDetailPage() {
     bodyTab === "initial" || bodyTab === "parent" ? null : reopens[bodyTab]?.created_at ?? null;
 
   const filteredEvents = useMemo(() => {
-    const evs = data?.events ?? [];
-    return evs.filter((e) =>
+    const source =
+      bodyTab === "parent" && data?.parent_ticket_events
+        ? data.parent_ticket_events
+        : data?.events ?? [];
+    return source.filter((e) =>
       ["ticket_created", "assignee_assigned", "assignee_changed", "status_changed", "reopened"].includes(e.type)
     );
-  }, [data?.events]);
+  }, [data?.events, data?.parent_ticket_events, bodyTab]);
 
   const ticketAttachmentsFiltered = useMemo(() => {
     if (!data?.attachments) return [];
@@ -950,9 +957,21 @@ export default function AdminTicketDetailPage() {
                   </div>
                 }
               />
-              <FieldRow 
-                label={bodyTab === "initial" ? "작성일시" : "재요청 작성일시"} 
-                value={formatDate(bodyTab === "initial" ? t.created_at : currentReopenCreatedAt)} 
+              <FieldRow
+                label={
+                  bodyTab === "initial"
+                    ? "작성일시"
+                    : bodyTab === "parent"
+                      ? "이전요청 작성일시"
+                      : "재요청 작성일시"
+                }
+                value={formatDate(
+                  bodyTab === "initial"
+                    ? t.created_at
+                    : bodyTab === "parent"
+                      ? parentSummary?.created_at
+                      : currentReopenCreatedAt
+                )}
               />
             </div>
             <div 
@@ -1052,8 +1071,20 @@ export default function AdminTicketDetailPage() {
                 }
               />
               <FieldRow
-                label={bodyTab === "initial" ? "완료일시" : "재요청 완료일시"}
-                value={completedAt ? formatDate(completedAt) : "-"}
+                label={
+                  bodyTab === "initial"
+                    ? "완료일시"
+                    : bodyTab === "parent"
+                      ? "이전요청 완료일시"
+                      : "재요청 완료일시"
+                }
+                value={
+                  bodyTab === "parent"
+                    ? formatDate(parentSummary?.resolved_at ?? parentSummary?.closed_at) || "-"
+                    : completedAt
+                      ? formatDate(completedAt)
+                      : "-"
+                }
               />
             </div>
         </div>
@@ -1202,249 +1233,197 @@ export default function AdminTicketDetailPage() {
           </CardBody>
         </Card>
 
-        {commentsFiltered.length === 0 ? (
-          <Card>
-            <CardBody padding="lg">
-              <div 
-                className="text-sm text-center py-8"
-                style={{ color: "var(--text-tertiary)" }}
+        <Card style={{ marginTop: 0 }}>
+          <CardHeader>
+            <h2 className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
+              답변
+            </h2>
+          </CardHeader>
+          <CardBody padding="lg" className="pt-0">
+            <RichTextEditor
+              value={commentBody}
+              onChange={(doc) => setCommentBody(doc)}
+              onError={setCommentError}
+              placeholder="답변을 입력하세요..."
+              minHeight="100px"
+            />
+            <div className="flex flex-wrap items-center gap-2 mt-3">
+              <input
+                id="admin-comment-file-input"
+                type="file"
+                multiple
+                className="sr-only"
+                ref={commentFileInputRef}
+                onChange={(e) => {
+                  addCommentFiles(e.currentTarget.files);
+                  e.currentTarget.value = "";
+                }}
+              />
+              <button
+                type="button"
+                className="text-xs rounded-lg px-3 py-1.5 font-medium transition-all"
+                style={{
+                  backgroundColor: "var(--bg-elevated)",
+                  borderWidth: "1px",
+                  borderStyle: "solid",
+                  borderColor: "var(--border-default)",
+                  color: "var(--text-primary)",
+                }}
+                onClick={() => commentFileInputRef.current?.click()}
               >
-                아직 답변이 없습니다. 첫 번째 답변을 작성해보세요.
-              </div>
-            </CardBody>
-          </Card>
-        ) : (
-          <>
-            {commentsFiltered.map((c, index) => {
-              const isMyComment = me.emp_no === c.author_emp_no;
-              const commentAttachments = attachments.filter((a) => a.comment_id === c.id);
-              return (
-                <Card key={c.id}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-3">
-                        <span 
-                          className="text-sm font-semibold"
-                          style={{ color: "var(--text-primary)" }}
-                        >
-                          답변
-                        </span>
-                        <span 
-                          className="text-xs px-2 py-0.5 rounded"
-                          style={{
-                            backgroundColor: isMyComment ? "var(--color-primary-100)" : "var(--bg-subtle)",
-                            color: isMyComment ? "var(--color-primary-700)" : "var(--text-secondary)",
-                          }}
-                        >
-                          {formatUser(c.author, c.author_emp_no)}
-                        </span>
-                      </div>
-                      <span 
-                        className="text-xs"
-                        style={{ color: "var(--text-tertiary)" }}
-                      >
-                        {formatDate(c.created_at)}
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardBody padding="lg">
-                    <div className="prose max-w-none" style={{ color: "var(--text-primary)" }}>
-                      <TiptapViewer value={c.body} />
-                    </div>
-                    
-                    {commentAttachments.length > 0 && (
-                      <div 
-                        className="mt-4 pt-4 space-y-2"
-                        style={{ borderTop: "1px solid var(--border-default)" }}
-                      >
-                        <div 
-                          className="text-xs font-medium mb-2"
-                          style={{ color: "var(--text-secondary)" }}
-                        >
-                          첨부파일 ({commentAttachments.length})
-                        </div>
-                        {commentAttachments.map((a) => (
-                          <div
-                            key={a.id}
-                            className="flex items-center justify-between p-3 rounded-lg transition-colors"
-                            style={{ 
-                              backgroundColor: "var(--bg-subtle)",
-                              border: "1px solid var(--border-default)"
-                            }}
-                          >
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <span style={{ color: "var(--text-secondary)" }}>📎</span>
-                              <span 
-                                className="text-sm font-medium truncate"
-                                style={{ color: "var(--text-primary)" }}
-                              >
-                                {a.filename}
-                              </span>
-                              <span 
-                                className="text-xs"
-                                style={{ color: "var(--text-tertiary)" }}
-                              >
-                                ({formatBytes(a.size)})
-                              </span>
-                            </div>
-                            <button
-                              className="text-xs rounded-lg px-3 py-1.5 font-medium transition-all flex-shrink-0 ml-3"
-                              style={{
-                                backgroundColor: "var(--bg-elevated)",
-                                borderWidth: "1px",
-                                borderStyle: "solid",
-                                borderColor: "var(--border-default)",
-                                color: "var(--text-primary)",
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = "var(--bg-hover)";
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
-                              }}
-                              onClick={() => downloadAttachmentM.mutate(a.id)}
-                              disabled={downloadAttachmentM.isPending}
-                            >
-                              다운로드
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardBody>
-                </Card>
-              );
-            })}
-            <div ref={commentsEndRef} />
-          </>
-        )}
-
-        <div className="space-y-3">
-          <RichTextEditor
-            value={commentBody}
-            onChange={(doc) => setCommentBody(doc)}
-            onError={setCommentError}
-            placeholder="답변을 입력하세요..."
-            minHeight="100px"
-          />
-
-          <div className="flex items-center gap-2">
-                <input
-                  id="admin-comment-file-input"
-                  type="file"
-                  multiple
-                  className="sr-only"
-                  ref={commentFileInputRef}
-                  onChange={(e) => {
-                    addCommentFiles(e.currentTarget.files);
-                    e.currentTarget.value = "";
-                  }}
-                />
-                <button
-                  type="button"
-                  className="text-xs rounded-lg px-3 py-1.5 font-medium transition-all"
-                  style={{
-                    backgroundColor: "var(--bg-elevated)",
-                    borderWidth: "1px",
-                    borderStyle: "solid",
-                    borderColor: "var(--border-default)",
-                    color: "var(--text-primary)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "var(--bg-hover)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "var(--bg-elevated)";
-                  }}
-                  onClick={() => commentFileInputRef.current?.click()}
-                >
-                  📎 파일 첨부
-                </button>
-
-                {commentFiles.length > 0 && (
-                  <span 
-                    className="text-xs"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    {commentFiles.length}개 파일
-                  </span>
-                )}
-
-                <div className="flex-1" />
-
-                <label className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-secondary)" }}>
-                  <input
-                    type="checkbox"
-                    className="h-3 w-3 rounded"
-                    checked={commentNotifyEmail}
-                    onChange={(e) => setCommentNotifyEmail(e.target.checked)}
-                  />
-                  메일 알림
-                </label>
-
-                <button
-                  className="text-sm rounded-lg px-5 py-2.5 font-medium transition-all disabled:opacity-60"
-                  style={{
-                    backgroundColor: "var(--color-primary-600)",
-                    color: "#ffffff",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!e.currentTarget.disabled) {
-                      e.currentTarget.style.backgroundColor = "var(--color-primary-700)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "var(--color-primary-600)";
-                  }}
-                  disabled={createCommentM.isPending || isEmptyDoc(commentBody)}
-                  onClick={() => {
-                    setCommentError(null);
-                    if (isEmptyDoc(commentBody)) {
-                      setCommentError("답변 내용을 입력하세요.");
-                      return;
-                    }
-                    createCommentM.mutate();
-                  }}
-                >
-                  {createCommentM.isPending ? "등록 중..." : "등록"}
-                </button>
-              </div>
-
+                📎 파일 첨부
+              </button>
               {commentFiles.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {commentFiles.map((file, idx) => (
-                    <div
-                      key={`${file.name}-${idx}`}
-                      className="flex items-center gap-2 rounded-lg border px-2 py-1 text-xs"
-                      style={{ 
-                        borderColor: "var(--border-default)",
-                        backgroundColor: "var(--bg-elevated)"
-                      }}
+                <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                  {commentFiles.length}개 파일
+                </span>
+              )}
+              <label className="flex items-center gap-1.5 text-xs ml-2" style={{ color: "var(--text-secondary)" }}>
+                <input
+                  type="checkbox"
+                  className="h-3 w-3 rounded"
+                  checked={commentNotifyEmail}
+                  onChange={(e) => setCommentNotifyEmail(e.target.checked)}
+                />
+                메일 알림
+              </label>
+              <button
+                className="text-sm rounded-lg px-5 py-2.5 font-medium transition-all disabled:opacity-60 ml-auto"
+                style={{
+                  backgroundColor: "var(--color-primary-600)",
+                  color: "#ffffff",
+                }}
+                disabled={createCommentM.isPending || isEmptyDoc(commentBody)}
+                onClick={() => {
+                  setCommentError(null);
+                  if (isEmptyDoc(commentBody)) {
+                    setCommentError("답변 내용을 입력하세요.");
+                    return;
+                  }
+                  createCommentM.mutate();
+                }}
+              >
+                {createCommentM.isPending ? "등록 중..." : "등록"}
+              </button>
+            </div>
+            {commentFiles.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {commentFiles.map((file, idx) => (
+                  <div
+                    key={`${file.name}-${idx}`}
+                    className="flex items-center gap-2 rounded-lg border px-2 py-1 text-xs"
+                    style={{
+                      borderColor: "var(--border-default)",
+                      backgroundColor: "var(--bg-elevated)",
+                    }}
+                  >
+                    <span style={{ color: "var(--text-primary)" }}>{file.name}</span>
+                    <span style={{ color: "var(--text-tertiary)" }}>({formatBytes(file.size)})</span>
+                    <button
+                      type="button"
+                      className="hover:underline"
+                      style={{ color: "var(--color-danger-600)" }}
+                      onClick={() => removeCommentFile(idx)}
                     >
-                      <span style={{ color: "var(--text-primary)" }}>{file.name}</span>
-                      <span style={{ color: "var(--text-tertiary)" }}>({formatBytes(file.size)})</span>
-                      <button
-                        type="button"
-                        className="hover:underline"
-                        style={{ color: "var(--color-danger-600)" }}
-                        onClick={() => removeCommentFile(idx)}
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {commentError && (
+              <div className="text-xs mt-2" style={{ color: "var(--color-danger-600)" }}>
+                {commentError}
+              </div>
+            )}
+
+            <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--border-default)" }}>
+              {commentsFiltered.length === 0 ? (
+                <div className="text-sm text-center py-6" style={{ color: "var(--text-tertiary)" }}>
+                  아직 답변이 없습니다. 첫 번째 답변을 작성해보세요.
+                </div>
+              ) : (
+                <div className="space-y-0">
+                  {[...commentsFiltered].reverse().map((c, idx) => {
+                    const isMyComment = me.emp_no === c.author_emp_no;
+                    const commentAttachments = attachments.filter((a) => a.comment_id === c.id);
+                    return (
+                      <div
+                        key={c.id}
+                        className="py-4"
+                        style={{
+                          borderBottom:
+                            idx < commentsFiltered.length - 1 ? "1px solid var(--border-default)" : undefined,
+                        }}
                       >
-                        ×
-                      </button>
-                    </div>
-                  ))}
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <span
+                              className="text-sm font-semibold"
+                              style={{ color: "var(--text-primary)" }}
+                            >
+                              답변
+                            </span>
+                            <span
+                              className="text-xs px-2 py-0.5 rounded"
+                              style={{
+                                backgroundColor: isMyComment ? "var(--color-primary-100)" : "var(--bg-subtle)",
+                                color: isMyComment ? "var(--color-primary-700)" : "var(--text-secondary)",
+                              }}
+                            >
+                              {formatUser(c.author, c.author_emp_no)}
+                            </span>
+                          </div>
+                          <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+                            {formatDate(c.created_at)}
+                          </span>
+                        </div>
+                        <div className="prose max-w-none text-sm" style={{ color: "var(--text-primary)" }}>
+                          <TiptapViewer value={c.body} />
+                        </div>
+                        {commentAttachments.length > 0 && (
+                          <div className="mt-3 pt-3 space-y-2" style={{ borderTop: "1px solid var(--border-subtle)" }}>
+                            <div className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+                              첨부파일 ({commentAttachments.length})
+                            </div>
+                            {commentAttachments.map((a) => (
+                              <div
+                                key={a.id}
+                                className="flex items-center justify-between p-2 rounded-lg text-xs"
+                                style={{
+                                  backgroundColor: "var(--bg-subtle)",
+                                  border: "1px solid var(--border-default)",
+                                }}
+                              >
+                                <span className="truncate" style={{ color: "var(--text-primary)" }}>
+                                  {a.filename} ({formatBytes(a.size)})
+                                </span>
+                                <button
+                                  type="button"
+                                  className="rounded px-2 py-1 font-medium flex-shrink-0"
+                                  style={{
+                                    backgroundColor: "var(--bg-elevated)",
+                                    border: "1px solid var(--border-default)",
+                                    color: "var(--text-primary)",
+                                  }}
+                                  onClick={() => downloadAttachmentM.mutate(a.id)}
+                                  disabled={downloadAttachmentM.isPending}
+                                >
+                                  다운로드
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
-
-          {commentError && (
-            <div 
-              className="text-xs"
-              style={{ color: "var(--color-danger-600)" }}
-            >
-              {commentError}
             </div>
-          )}
-        </div>
+          </CardBody>
+        </Card>
+        <div ref={commentsEndRef} />
 
         <Card>
           <CardHeader>

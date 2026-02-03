@@ -41,7 +41,7 @@ type Project = {
 };
 
 type SortDir = "asc" | "desc";
-type SortKey = "title" | "status" | "work_type" | "category_id" | "created_at";
+type SortKey = "default" | "title" | "status" | "work_type" | "category_id" | "created_at";
 
 const STATUS_OPTIONS = [
   { value: "all", label: "전체" },
@@ -141,7 +141,7 @@ export default function TicketsPage() {
   const [page, setPage] = useState(1);
   const pageSize = 10;
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [sortKey, setSortKey] = useState<SortKey>("created_at");
+  const [sortKey, setSortKey] = useState<SortKey>("default");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const { data, isLoading, error } = useQuery({
@@ -190,6 +190,12 @@ export default function TicketsPage() {
     };
 
     const sorted = [...list].sort((a, b) => {
+      if (sortKey === "default") {
+        const sa = STATUS_SORT[a.status] ?? 9;
+        const sb = STATUS_SORT[b.status] ?? 9;
+        if (sa !== sb) return sa - sb;
+        return toTime(b.created_at) - toTime(a.created_at);
+      }
       if (sortKey === "title") return compareText(a.title, b.title);
       if (sortKey === "status") {
         const sa = STATUS_SORT[a.status] ?? 9;
@@ -206,6 +212,7 @@ export default function TicketsPage() {
       return 0;
     });
 
+    if (sortKey === "default") return sorted;
     return sortDir === "asc" ? sorted : sorted.reverse();
   }, [base, status, projectFilter, search, sortKey, sortDir, categoryMap]);
 

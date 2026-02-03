@@ -237,7 +237,7 @@ export default function AdminAllTicketsPage() {
         const sa = STATUS_SORT[a.status] ?? 9;
         const sb = STATUS_SORT[b.status] ?? 9;
         if (sa !== sb) return sa - sb;
-        return toTime(a.created_at) - toTime(b.created_at);
+        return toTime(b.created_at) - toTime(a.created_at);
       }
       if (sortKey === "id") return a.id - b.id;
       if (sortKey === "title") return compareText(a.title, b.title);
@@ -266,6 +266,7 @@ export default function AdminAllTicketsPage() {
       return 0;
     });
 
+    if (sortKey === "default") return base;
     return sortDir === "asc" ? base : base.reverse();
   }, [filtered, sortKey, sortDir, categoryMap]);
 
@@ -317,7 +318,7 @@ export default function AdminAllTicketsPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="space-y-6 animate-fadeIn relative pb-16">
       <ErrorDialog message={errorMessage} onClose={() => setErrorMessage(null)} />
       <PageHeader
         title="모든 요청 관리"
@@ -588,24 +589,27 @@ export default function AdminAllTicketsPage() {
                 </tbody>
               </table>
             </div>
-            <div className="px-6 py-4 border-t flex flex-wrap items-center justify-between gap-4" style={{ borderColor: "var(--border-default)" }}>
+            <div className="px-6 py-4 border-t flex flex-wrap items-center justify-end gap-4" style={{ borderColor: "var(--border-default)" }}>
               <Pagination page={page} total={sorted.length} pageSize={pageSize} onChange={setPage} />
-              <Link
-                href="/admin/data"
-                className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors"
-                style={{
-                  borderColor: "var(--border-default)",
-                  backgroundColor: "var(--bg-card)",
-                  color: "var(--text-secondary)",
-                }}
-              >
-                <Download className="h-4 w-4" />
-                내보내기
-              </Link>
             </div>
           </CardBody>
         </Card>
       )}
+
+      <div className="fixed bottom-6 right-6 z-10">
+        <Link
+          href="/admin/data"
+          className="inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors shadow-md"
+          style={{
+            borderColor: "var(--border-default)",
+            backgroundColor: "var(--bg-card)",
+            color: "var(--text-secondary)",
+          }}
+        >
+          <Download className="h-4 w-4" />
+          내보내기
+        </Link>
+      </div>
     </div>
   );
 }

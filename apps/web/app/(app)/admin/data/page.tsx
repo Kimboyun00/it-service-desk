@@ -16,10 +16,12 @@ import {
   escapeCsvCell,
   loadPresetsFromStorage,
   savePresetsToStorage,
+  STATUS_LABELS,
   type Ticket,
   type FilterRule,
   type DataExtractPreset,
 } from "./data-extract-types";
+import Pagination from "@/components/Pagination";
 import { PresetBar } from "./PresetBar";
 import { FilterBuilder } from "./FilterBuilder";
 import { ColumnConfig } from "./ColumnConfig";
@@ -75,6 +77,8 @@ export default function AdminDataPage() {
   const [filterRules, setFilterRules] = useState<FilterRule[]>([]);
   const [selectedColumns, setSelectedColumns] = useState<Set<string>>(() => new Set(defaultColumnOrder));
   const [columnOrder, setColumnOrder] = useState<string[]>(() => defaultColumnOrder);
+  const tablePageSize = 20;
+  const [tablePage, setTablePage] = useState(1);
 
   useEffect(() => {
     setPresets(loadPresetsFromStorage());
@@ -88,7 +92,6 @@ export default function AdminDataPage() {
   const distinctValues = useMemo(() => {
     const dv: Record<string, string[]> = {};
     const statusSet = new Set<string>();
-    const prioritySet = new Set<string>();
     const workTypeSet = new Set<string>();
     const projectSet = new Set<string>();
     const categorySet = new Set<string>();
@@ -98,8 +101,7 @@ export default function AdminDataPage() {
     const yearSet = new Set<number>();
 
     for (const t of tickets) {
-      if (t.status) statusSet.add(t.status);
-      if (t.priority) prioritySet.add(t.priority);
+      if (t.status) statusSet.add(STATUS_LABELS[t.status] ?? t.status);
       const wt = t.work_type || "-";
       workTypeSet.add(wt);
       const pn = t.project_name || "-";
@@ -116,8 +118,7 @@ export default function AdminDataPage() {
       }
     }
 
-    dv.status = Array.from(statusSet).sort();
-    dv.priority = Array.from(prioritySet).sort();
+    dv.status = Array.from(statusSet).sort((a, b) => (a === "-" ? 1 : b === "-" ? -1 : a.localeCompare(b)));
     dv.work_type = Array.from(workTypeSet).sort((a, b) => (a === "-" ? 1 : b === "-" ? -1 : a.localeCompare(b)));
     dv.project_name = Array.from(projectSet).sort((a, b) => (a === "-" ? 1 : b === "-" ? -1 : a.localeCompare(b)));
     dv.category_display = Array.from(categorySet).filter((x) => x !== "-").sort((a, b) => a.localeCompare(b));
@@ -138,6 +139,18 @@ export default function AdminDataPage() {
       }),
     [tickets, createdYearInclude, createdDayRangePercent, filterRules, categoryMap]
   );
+
+  const tableTotal = filteredTickets.length;
+  const tablePageCount = Math.max(1, Math.ceil(tableTotal / tablePageSize));
+  const tablePageSafe = Math.min(tablePageCount, Math.max(1, tablePage));
+  const tablePageItems = useMemo(
+    () => filteredTickets.slice((tablePageSafe - 1) * tablePageSize, tablePageSafe * tablePageSize),
+    [filteredTickets, tablePageSafe, tablePageSize]
+  );
+
+  useEffect(() => {
+    if (tablePage > tablePageCount && tablePageCount >= 1) setTablePage(1);
+  }, [tablePageCount, tablePage]);
 
   const visibleColDefs = useMemo(() => {
     const order = columnOrder.length ? columnOrder : defaultColumnOrder;
@@ -213,7 +226,7 @@ export default function AdminDataPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="space-y-6 animate-fadeIn pb-10">
       <PageHeader
         title="데이터 추출"
         subtitle="티켓 메타정보를 확인하고 엑셀(CSV)로 다운로드할 수 있습니다"
@@ -251,11 +264,11 @@ export default function AdminDataPage() {
         onSaveCurrent={saveCurrentPreset}
       />
 
-      {/* 2컬럼: 좌측 필터 설정 / 우측 출력 열 설정. 각각 독립 스크롤, 테이블과 겹치지 않음 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch min-h-[280px] max-h-[420px] overflow-hidden">
-        <div className="min-w-0 flex min-h-0">
+      {/* 2컬럼: 좌측 필터 설정 / 우측 출력 열 설정. 각각 독립 스크롤 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="min-w-0 min-h-[280px] max-h-[420px] overflow-y-auto rounded-lg border" style={{ borderColor: "var(--border-default)" }}>
           <FilterBuilder
-            className="flex-1 min-h-0"
+            className="min-h-full"
             createdYearInclude={createdYearInclude}
             setCreatedYearInclude={setCreatedYearInclude}
             createdDayRangePercent={createdDayRangePercent}
@@ -265,9 +278,9 @@ export default function AdminDataPage() {
             distinctValues={distinctValues}
           />
         </div>
-        <div className="min-w-0 flex min-h-0">
+        <div className="min-w-0 min-h-[280px] max-h-[420px] overflow-y-auto rounded-lg border" style={{ borderColor: "var(--border-default)" }}>
           <ColumnConfig
-            className="flex-1 min-h-0"
+            className="min-h-full"
             columnOrder={columnOrder}
             setColumnOrder={setColumnOrder}
             selectedColumns={selectedColumns}
@@ -316,7 +329,7 @@ export default function AdminDataPage() {
         </div>
       </div>
 
-      {/* 테이블 미리보기 */}
+      {/* 테이블 미리보기: 20개씩, 이전/다음 페이지 */}
       <Card padding="none">
         {isLoading && (
           <div className="py-12 text-center text-sm" style={{ color: "var(--text-tertiary)" }}>
@@ -329,37 +342,52 @@ export default function AdminDataPage() {
           </div>
         )}
         {!isLoading && !error && (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[600px] text-left text-sm">
-              <thead>
-                <tr style={{ borderBottom: "1px solid var(--border-default)", backgroundColor: "var(--bg-elevated)" }}>
-                  {visibleColDefs.map((c) => (
-                    <th key={c.key} className="px-4 py-3 font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      {c.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredTickets.length === 0 && (
-                  <tr>
-                    <td colSpan={visibleColDefs.length} className="px-4 py-8 text-center" style={{ color: "var(--text-tertiary)" }}>
-                      {tickets.length === 0 ? "티켓 데이터가 없습니다." : "조건에 맞는 티켓이 없습니다. 필터를 조정해 보세요."}
-                    </td>
-                  </tr>
-                )}
-                {filteredTickets.map((t) => (
-                  <tr key={t.id} style={{ borderBottom: "1px solid var(--border-default)" }}>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[600px] text-left text-sm">
+                <thead>
+                  <tr style={{ borderBottom: "1px solid var(--border-default)", backgroundColor: "var(--bg-elevated)" }}>
                     {visibleColDefs.map((c) => (
-                      <td key={c.key} className="px-4 py-2.5 max-w-[200px] truncate" style={{ color: "var(--text-primary)" }}>
-                        {getValue(t, c.key, { categoryMap })}
-                      </td>
+                      <th key={c.key} className="px-4 py-3 font-semibold" style={{ color: "var(--text-secondary)" }}>
+                        {c.label}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filteredTickets.length === 0 && (
+                    <tr>
+                      <td colSpan={visibleColDefs.length} className="px-4 py-8 text-center" style={{ color: "var(--text-tertiary)" }}>
+                        {tickets.length === 0 ? "티켓 데이터가 없습니다." : "조건에 맞는 티켓이 없습니다. 필터를 조정해 보세요."}
+                      </td>
+                    </tr>
+                  )}
+                  {tablePageItems.map((t) => (
+                    <tr key={t.id} style={{ borderBottom: "1px solid var(--border-default)" }}>
+                      {visibleColDefs.map((c) => (
+                        <td key={c.key} className="px-4 py-2.5 max-w-[200px] truncate" style={{ color: "var(--text-primary)" }}>
+                          {getValue(t, c.key, { categoryMap })}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {filteredTickets.length > 0 && (
+              <div
+                className="flex flex-wrap items-center justify-end gap-4 px-4 py-3 border-t"
+                style={{ borderColor: "var(--border-default)" }}
+              >
+                <Pagination
+                  page={tablePageSafe}
+                  total={tableTotal}
+                  pageSize={tablePageSize}
+                  onChange={(p) => setTablePage(p)}
+                />
+              </div>
+            )}
+          </>
         )}
       </Card>
     </div>

@@ -69,6 +69,7 @@ type StepId =
   | "description"
   | "review"
   | "reopen_list"
+  | "reopen_title"
   | "reopen_description"
   | "reopen_review";
 
@@ -179,7 +180,7 @@ export default function HomePage() {
     enabled: currentStep === "reopen_list",
   });
 
-  useUnsavedChangesWarning(isDirty || (currentStep.startsWith("reopen") && (selectedTicketId != null || !isEmptyDoc(reopenDescription))));
+  useUnsavedChangesWarning(isDirty || (currentStep.startsWith("reopen") && (selectedTicketId != null || reopenTitle.trim().length > 0 || !isEmptyDoc(reopenDescription))));
 
   useEffect(() => {
     let active = true;
@@ -230,7 +231,7 @@ export default function HomePage() {
     "description",
     "review",
   ];
-  const reopenSteps: StepId[] = ["reopen_list", "reopen_description", "reopen_review"];
+  const reopenSteps: StepId[] = ["reopen_list", "reopen_title", "reopen_description", "reopen_review"];
   const steps = reopenSteps.includes(currentStep) ? reopenSteps : newRequestSteps;
   const currentStepIndex = steps.indexOf(currentStep);
   const progress = currentStepIndex >= 0 ? ((currentStepIndex + 1) / steps.length) * 100 : 0;
@@ -414,10 +415,12 @@ export default function HomePage() {
         return true;
       case "reopen_list":
         return selectedTicketId != null;
-      case "reopen_description":
-        return reopenTitle.trim().length >= 3 && !isEmptyDoc(reopenDescription);
-      case "reopen_review":
+      case "reopen_title":
         return reopenTitle.trim().length >= 3;
+      case "reopen_description":
+        return !isEmptyDoc(reopenDescription);
+      case "reopen_review":
+        return true;
       default:
         return false;
     }
@@ -927,7 +930,7 @@ export default function HomePage() {
               <div className="space-y-8">
                 <div className="space-y-2">
                   <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    1단계 / 3단계
+                    1단계 / 4단계
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
                     이전 요청 재요청
@@ -1006,7 +1009,7 @@ export default function HomePage() {
                             >
                               <button
                                 type="button"
-                                onClick={() => setSelectedTicketId(t.id)}
+                                onClick={() => setSelectedTicketId((prev) => (prev === t.id ? null : t.id))}
                                 className="flex-1 flex items-center gap-3 text-left min-w-0"
                               >
                                 {isSelected && (
@@ -1043,20 +1046,6 @@ export default function HomePage() {
                             </div>
                           );
                         })}
-                    </div>
-                    <div className="flex justify-end pt-2">
-                      <button
-                        type="button"
-                        onClick={nextStep}
-                        disabled={selectedTicketId == null}
-                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{
-                          background: "linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%)",
-                        }}
-                      >
-                        다음
-                        <ArrowRight className="w-5 h-5" />
-                      </button>
                     </div>
                   </>
                 )}
@@ -1110,11 +1099,56 @@ export default function HomePage() {
               </div>
             )}
 
+            {currentStep === "reopen_title" && selectedTicketId != null && (
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
+                    2단계 / 4단계
+                  </p>
+                  <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
+                    재요청 제목
+                  </h2>
+                  <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
+                    재요청할 요청의 제목을 입력하세요
+                  </p>
+                </div>
+                <div
+                  className="rounded-xl border p-4"
+                  style={{ borderColor: "var(--border-default)", backgroundColor: "var(--bg-subtle)" }}
+                >
+                  <p className="text-sm font-medium mb-1" style={{ color: "var(--text-tertiary)" }}>
+                    선택한 요청
+                  </p>
+                  <p className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
+                    {completedTickets.find((t) => t.id === selectedTicketId)?.title ?? ""}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
+                    제목
+                  </label>
+                  <input
+                    type="text"
+                    value={reopenTitle}
+                    onChange={(e) => setReopenTitle(e.target.value)}
+                    placeholder="재요청 제목을 입력하세요 (3자 이상)"
+                    className="w-full px-4 py-2 rounded-lg border text-sm"
+                    style={{
+                      borderColor: "var(--border-default)",
+                      backgroundColor: "var(--bg-card)",
+                      color: "var(--text-primary)",
+                    }}
+                    maxLength={200}
+                  />
+                </div>
+              </div>
+            )}
+
             {currentStep === "reopen_description" && selectedTicketId != null && (
               <div className="space-y-8">
                 <div className="space-y-2">
                   <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    2단계 / 3단계
+                    3단계 / 4단계
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
                     재요청 사유
@@ -1133,26 +1167,11 @@ export default function HomePage() {
                   <p className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
                     {completedTickets.find((t) => t.id === selectedTicketId)?.title ?? ""}
                   </p>
+                  <p className="text-sm mt-1" style={{ color: "var(--text-tertiary)" }}>
+                    재요청 제목: {reopenTitle.trim() || "-"}
+                  </p>
                 </div>
                 <div className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
-                      제목
-                    </label>
-                    <input
-                      type="text"
-                      value={reopenTitle}
-                      onChange={(e) => setReopenTitle(e.target.value)}
-                      placeholder="재요청 제목을 입력하세요 (3자 이상)"
-                      className="w-full px-4 py-2 rounded-lg border text-sm"
-                      style={{
-                        borderColor: "var(--border-default)",
-                        backgroundColor: "var(--bg-card)",
-                        color: "var(--text-primary)",
-                      }}
-                      maxLength={200}
-                    />
-                  </div>
                   <RichTextEditor
                     value={reopenDescription}
                     onChange={setReopenDescription}
@@ -1218,7 +1237,7 @@ export default function HomePage() {
               <div className="space-y-8">
                 <div className="space-y-2">
                   <p className="text-sm font-medium" style={{ color: "var(--text-tertiary)" }}>
-                    3단계 / 3단계
+                    4단계 / 4단계
                   </p>
                   <h2 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
                     재요청 내용 확인

@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Optional
+from datetime import datetime
 
 from .ticket import TicketOut
 from .comment import CommentOut
@@ -13,6 +14,9 @@ class ParentTicketSummary(BaseModel):
     id: int
     title: str
     description: dict
+    created_at: Optional[datetime] = None
+    resolved_at: Optional[datetime] = None
+    closed_at: Optional[datetime] = None
 
 
 class TicketDetailOut(BaseModel):
@@ -22,3 +26,4 @@ class TicketDetailOut(BaseModel):
     attachments: list[AttachmentOut]
     reopens: list[ReopenOut] = []
     parent_ticket_summary: Optional[ParentTicketSummary] = None
+    parent_ticket_events: Optional[list[EventOut]] = None
