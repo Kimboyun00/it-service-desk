@@ -253,7 +253,7 @@ export function FilterBuilder({
   };
 
   return (
-    <Card padding="lg" className={`flex flex-col min-h-0 ${className ?? ""}`}>
+    <Card padding="lg" className={`flex flex-col min-h-0 overflow-hidden ${className ?? ""}`}>
       <h3
         className="text-sm font-semibold mb-3 pb-2 border-b shrink-0"
         style={{ color: "var(--text-secondary)", borderColor: "var(--border-default)" }}
@@ -261,8 +261,9 @@ export function FilterBuilder({
         필터 설정
       </h3>
 
-      {/* 작성일시: 고정 최상단 */}
-        <div className="mb-4 shrink-0">
+      <div className="flex-1 min-h-0 overflow-y-auto">
+      {/* 작성일시: 기본 필터 */}
+        <div className="mb-4">
         <div className="text-xs font-medium mb-1.5" style={{ color: "var(--text-tertiary)" }}>
           작성일시 (기본 필터)
         </div>
@@ -342,11 +343,11 @@ export function FilterBuilder({
       </div>
 
       {/* 동적 조건 행 */}
-      <div className="border-t pt-3 flex-1 min-h-0 flex flex-col overflow-hidden" style={{ borderColor: "var(--border-default)" }}>
-        <div className="text-xs font-medium mb-2 shrink-0" style={{ color: "var(--text-tertiary)" }}>
+      <div className="border-t pt-3" style={{ borderColor: "var(--border-default)" }}>
+        <div className="text-xs font-medium mb-2" style={{ color: "var(--text-tertiary)" }}>
           추가 조건 (항목 · 포함/제외 · 값)
         </div>
-        <div className="space-y-0 min-h-0 overflow-y-auto flex-1">
+        <div className="space-y-0">
           {filterRules.map((rule, index) => (
             <FilterRuleRow
               key={rule.id}
@@ -360,7 +361,7 @@ export function FilterBuilder({
         <button
           type="button"
           onClick={addRule}
-          className="mt-2 shrink-0 inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+          className="mt-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
           style={{
             borderColor: "var(--border-default)",
             backgroundColor: "var(--bg-card)",
@@ -370,6 +371,7 @@ export function FilterBuilder({
           <Plus className="h-4 w-4" />
           조건 추가
         </button>
+      </div>
       </div>
     </Card>
   );
