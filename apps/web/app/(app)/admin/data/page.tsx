@@ -251,8 +251,8 @@ export default function AdminDataPage() {
         onSaveCurrent={saveCurrentPreset}
       />
 
-      {/* 2컬럼: 좌측 필터 설정 / 우측 출력 열 설정. 최소 높이에 맞춰 짧게, 필터 추가 시 함께 늘어나고 최대 높이에서 스크롤 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch min-h-[280px] max-h-[420px]">
+      {/* 2컬럼: 좌측 필터 설정 / 우측 출력 열 설정. 최대 높이에서 스크롤해 테이블과 겹치지 않음 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch min-h-[280px] max-h-[420px] overflow-y-auto overflow-x-hidden">
         <div className="min-w-0 flex min-h-0">
           <FilterBuilder
             className="flex-1 min-h-0"
