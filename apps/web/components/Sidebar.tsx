@@ -134,6 +134,7 @@ function ExpandableNavItem({
   onToggle,
   subItems,
   onNavigate,
+  pathname,
 }: {
   item: NavItem;
   active: boolean;
@@ -142,6 +143,7 @@ function ExpandableNavItem({
   onToggle: () => void;
   subItems: NavItem[];
   onNavigate?: () => void;
+  pathname: string;
 }) {
   const Icon = item.icon;
 
@@ -183,20 +185,27 @@ function ExpandableNavItem({
         <div className="mt-1 ml-8 space-y-0.5">
           {subItems.map((sub) => {
             const SubIcon = sub.icon;
+            const subActive =
+              pathname === sub.href ||
+              pathname.startsWith(sub.href + "/");
             return (
               <Link
                 key={sub.href}
                 href={sub.href}
                 className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 min-w-0"
                 style={{
-                  backgroundColor: "transparent",
-                  color: "var(--sidebar-text)",
+                  backgroundColor: subActive ? "var(--sidebar-item-active)" : "transparent",
+                  color: subActive ? "var(--sidebar-text-active)" : "var(--sidebar-text)",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "var(--sidebar-item-hover)";
+                  if (!subActive) {
+                    e.currentTarget.style.backgroundColor = "var(--sidebar-item-hover)";
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "transparent";
+                  if (!subActive) {
+                    e.currentTarget.style.backgroundColor = "transparent";
+                  }
                 }}
                 onClick={onNavigate}
               >
@@ -365,6 +374,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
               onToggle={() => setAdminExpanded(!adminExpanded)}
               subItems={adminSubNav}
               onNavigate={onMobileClose}
+              pathname={pathname}
             />
           </>
         )}
