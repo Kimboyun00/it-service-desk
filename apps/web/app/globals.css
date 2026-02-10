@@ -182,7 +182,7 @@ nextjs-portal,
   /* 공통 에디터: 티켓 본문·답글·FAQ·공지 모두 동일 간격 */
   min-height: 110px;
   outline: none;
-  font-size: 0.84rem;
+  font-size: 1rem;
   line-height: 1.4;
   color: var(--text-primary);
   background-color: transparent;
