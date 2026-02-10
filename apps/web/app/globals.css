@@ -179,16 +179,17 @@ nextjs-portal,
 }
 
 .tiptap .ProseMirror {
-  min-height: 180px;
+  /* 공통 에디터: 티켓 본문·답글·FAQ·공지 모두 동일 간격 */
+  min-height: 140px;
   outline: none;
-  font-size: 0.95rem;
-  line-height: 1.7;
+  font-size: 0.9rem;
+  line-height: 1.5;
   color: var(--text-primary);
   background-color: transparent;
 }
 
 .tiptap .ProseMirror > * + * {
-  margin-top: 0.75rem;
+  margin-top: 0.5rem;
 }
 
 /* 답변용 컴팩트 스타일 */
@@ -217,28 +218,32 @@ nextjs-portal,
 .tiptap h1 {
   font-size: 1.5rem;
   font-weight: 700;
-  margin-top: 1rem;
+  margin-top: 0.75rem;
+  margin-bottom: 0.25rem;
   color: var(--text-primary);
 }
 
 .tiptap h2 {
   font-size: 1.25rem;
   font-weight: 700;
-  margin-top: 1rem;
+  margin-top: 0.75rem;
+  margin-bottom: 0.25rem;
   color: var(--text-primary);
 }
 
 .tiptap h3 {
   font-size: 1.1rem;
   font-weight: 600;
-  margin-top: 0.75rem;
+  margin-top: 0.6rem;
+  margin-bottom: 0.2rem;
   color: var(--text-primary);
 }
 
 .tiptap h4 {
   font-size: 1rem;
   font-weight: 600;
-  margin-top: 0.75rem;
+  margin-top: 0.6rem;
+  margin-bottom: 0.2rem;
   color: var(--text-primary);
 }
 
@@ -273,7 +278,7 @@ nextjs-portal,
   background: var(--bg-subtle);
   border: 1px solid var(--border-default);
   border-radius: 12px;
-  padding: 0.75rem;
+  padding: 0.5rem 0.6rem;
   overflow-x: auto;
 }
 
@@ -285,7 +290,7 @@ nextjs-portal,
 
 .tiptap ul,
 .tiptap ol {
-  margin-left: 1.25rem;
+  margin-left: 1rem;
   padding-left: 0.25rem;
 }
 
