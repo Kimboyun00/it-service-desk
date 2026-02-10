@@ -541,7 +541,21 @@ export default function TicketDetailPage() {
                 className="hidden md:block absolute inset-y-0 left-1/2 w-px"
                 style={{ backgroundColor: "var(--border-subtle, rgba(0, 0, 0, 0.06))" }}
               />
-              <FieldRow label="요청자" value={formatUser(t.requester, t.requester_emp_no)} />
+              <FieldRow
+                label="요청자"
+                value={
+                  <span
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium"
+                    style={{
+                      backgroundColor: "var(--color-neutral-100)",
+                      color: "var(--color-neutral-700)",
+                      border: "1px solid var(--color-neutral-200)",
+                    }}
+                  >
+                    {formatUser(t.requester, t.requester_emp_no)}
+                  </span>
+                }
+              />
               <FieldRow
                 label="상태"
                 value={
