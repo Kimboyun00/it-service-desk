@@ -466,4 +466,9 @@ nextjs-portal,
     min-width: 44px;
     min-height: 44px;
   }
+
+  /* 날짜 입력이 그리드/플렉스 안에서 겹치지 않도록 */
+  input[type="date"] {
+    min-width: 0;
+  }
 }

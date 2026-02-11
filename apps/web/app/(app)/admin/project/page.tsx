@@ -232,34 +232,36 @@ export default function AdminProjectPage() {
               placeholder="예: 2026 IT 서비스 개선"
             />
           </div>
-          <div className="flex gap-3 w-full min-w-0 md:contents">
-            <div className="flex-1 min-w-0">
+          <div className="grid grid-cols-2 gap-3 w-full min-w-0 md:contents">
+            <div className="min-w-0">
               <label className="text-xs" style={{ color: "var(--text-secondary)" }}>
                 시작일
               </label>
               <input
                 type="date"
-                className="mt-1 w-full min-w-0 rounded-lg border px-3 py-2 text-sm max-w-full"
+                className="mt-1 w-full min-w-0 rounded-lg border px-2 py-2 text-sm"
                 style={{
                   borderColor: "var(--border-default)",
                   backgroundColor: "var(--bg-input)",
                   color: "var(--text-primary)",
+                  maxWidth: "100%",
                 }}
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
               />
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0">
               <label className="text-xs" style={{ color: "var(--text-secondary)" }}>
                 종료일
               </label>
               <input
                 type="date"
-                className="mt-1 w-full min-w-0 rounded-lg border px-3 py-2 text-sm max-w-full"
+                className="mt-1 w-full min-w-0 rounded-lg border px-2 py-2 text-sm"
                 style={{
                   borderColor: "var(--border-default)",
                   backgroundColor: "var(--bg-input)",
                   color: "var(--text-primary)",
+                  maxWidth: "100%",
                 }}
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
