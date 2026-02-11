@@ -232,37 +232,39 @@ export default function AdminProjectPage() {
               placeholder="예: 2026 IT 서비스 개선"
             />
           </div>
-          <div>
-            <label className="text-xs" style={{ color: "var(--text-secondary)" }}>
-              시작일
-            </label>
-            <input
-              type="date"
-              className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-              style={{
-                borderColor: "var(--border-default)",
-                backgroundColor: "var(--bg-input)",
-                color: "var(--text-primary)",
-              }}
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="text-xs" style={{ color: "var(--text-secondary)" }}>
-              종료일
-            </label>
-            <input
-              type="date"
-              className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-              style={{
-                borderColor: "var(--border-default)",
-                backgroundColor: "var(--bg-input)",
-                color: "var(--text-primary)",
-              }}
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
+          <div className="flex gap-3 w-full min-w-0 md:contents">
+            <div className="flex-1 min-w-0">
+              <label className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                시작일
+              </label>
+              <input
+                type="date"
+                className="mt-1 w-full min-w-0 rounded-lg border px-3 py-2 text-sm max-w-full"
+                style={{
+                  borderColor: "var(--border-default)",
+                  backgroundColor: "var(--bg-input)",
+                  color: "var(--text-primary)",
+                }}
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <label className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                종료일
+              </label>
+              <input
+                type="date"
+                className="mt-1 w-full min-w-0 rounded-lg border px-3 py-2 text-sm max-w-full"
+                style={{
+                  borderColor: "var(--border-default)",
+                  backgroundColor: "var(--bg-input)",
+                  color: "var(--text-primary)",
+                }}
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
           </div>
           <div className="flex items-end">
             <button
@@ -338,13 +340,13 @@ export default function AdminProjectPage() {
                         onChange={(e) => setEditForm((f) => (f ? { ...f, name: e.target.value } : f))}
                       />
                     </div>
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <label className="text-xs" style={{ color: "var(--text-secondary)" }}>
                         시작일
                       </label>
                       <input
                         type="date"
-                        className="mt-0.5 rounded border px-2 py-1.5 text-sm"
+                        className="mt-0.5 w-full min-w-0 rounded border px-2 py-1.5 text-sm max-w-full"
                         style={{
                           borderColor: "var(--border-default)",
                           backgroundColor: "var(--bg-input)",
@@ -354,13 +356,13 @@ export default function AdminProjectPage() {
                         onChange={(e) => setEditForm((f) => (f ? { ...f, start_date: e.target.value } : f))}
                       />
                     </div>
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <label className="text-xs" style={{ color: "var(--text-secondary)" }}>
                         종료일
                       </label>
                       <input
                         type="date"
-                        className="mt-0.5 rounded border px-2 py-1.5 text-sm"
+                        className="mt-0.5 w-full min-w-0 rounded border px-2 py-1.5 text-sm max-w-full"
                         style={{
                           borderColor: "var(--border-default)",
                           backgroundColor: "var(--bg-input)",

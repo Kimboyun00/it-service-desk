@@ -304,9 +304,9 @@ export default function AdminAllTicketsPage() {
         subtitle="전체 요청을 검색하고 관리하세요."
         icon={<ListChecks className="w-7 h-7" />}
         actions={
-          <div className="flex items-center gap-3 flex-wrap w-full min-w-0">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 w-full min-w-0">
             <div
-              className="flex items-center gap-1 rounded-lg border px-1.5 py-1.5 flex-shrink-0"
+              className="flex items-center gap-1 rounded-lg border px-1.5 py-1.5 w-full sm:w-auto flex-shrink-0"
               style={{
                 backgroundColor: "var(--bg-elevated)",
                 borderColor: "var(--border-default)",
@@ -317,7 +317,7 @@ export default function AdminAllTicketsPage() {
                 <button
                   key={f}
                   type="button"
-                  className="px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap"
+                  className="flex-1 sm:flex-initial px-3 py-2 sm:py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap min-h-[44px] sm:min-h-0"
                   style={{
                     backgroundColor: statusFilter === f ? "var(--color-primary-600)" : "transparent",
                     color: statusFilter === f ? "#ffffff" : "var(--text-secondary)",
@@ -338,10 +338,10 @@ export default function AdminAllTicketsPage() {
                 </button>
               ))}
             </div>
-            <div className="relative flex-1 min-w-0 sm:min-w-[200px]">
+            <div className="relative w-full min-w-0 sm:flex-1 sm:min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
               <input
-                className="border rounded-lg pl-10 pr-3 py-2 text-sm w-full min-w-0 sm:w-80 transition-colors"
+                className="border rounded-lg pl-10 pr-3 py-2.5 sm:py-2 text-sm w-full min-w-0 sm:w-80 transition-colors min-h-[44px] sm:min-h-0"
                 style={{
                   backgroundColor: "var(--bg-input)",
                   borderColor: "var(--border-default)",

@@ -84,7 +84,7 @@ export default function TopBar() {
         </button>
         {notifOpen && (
           <div
-            className="absolute right-0 mt-2 w-[380px] rounded-xl border overflow-hidden z-20"
+            className="absolute right-0 mt-2 w-[380px] max-sm:fixed max-sm:left-4 max-sm:right-4 max-sm:top-14 max-sm:w-auto max-sm:max-h-[70vh] rounded-xl border overflow-hidden z-[100]"
             style={{
               backgroundColor: "var(--bg-card)",
               borderColor: "var(--border-default)",
@@ -92,7 +92,7 @@ export default function TopBar() {
             }}
           >
             <div
-              className="px-4 py-3 border-b flex items-center justify-between"
+              className="px-4 py-3 border-b flex items-center justify-between flex-shrink-0"
               style={{
                 borderColor: "var(--border-default)",
                 color: "var(--text-primary)",
@@ -110,7 +110,7 @@ export default function TopBar() {
                 </button>
               )}
             </div>
-            <div className="max-h-[360px] overflow-y-auto">
+            <div className="max-h-[360px] max-sm:max-h-[60vh] overflow-y-auto">
               {isLoading && (
                 <div className="px-4 py-6 text-center text-sm" style={{ color: "var(--text-tertiary)" }}>
                   불러오는 중...
