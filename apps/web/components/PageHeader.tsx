@@ -21,7 +21,7 @@ export default function PageHeader({ eyebrow, title, subtitle, meta, actions, ic
         boxShadow: "var(--shadow-sm)",
       }}
     >
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-start justify-between gap-4">
         <div className="flex items-start gap-3 sm:gap-4 min-w-0 flex-1">
           {icon != null && (
             <div
@@ -64,7 +64,11 @@ export default function PageHeader({ eyebrow, title, subtitle, meta, actions, ic
             )}
           </div>
         </div>
-        {actions && <div className="flex items-center gap-2 flex-shrink-0">{actions}</div>}
+        {actions && (
+          <div className="w-full min-w-0 sm:w-auto sm:flex-shrink-0 flex flex-wrap items-center gap-2">
+            {actions}
+          </div>
+        )}
       </div>
     </div>
   );

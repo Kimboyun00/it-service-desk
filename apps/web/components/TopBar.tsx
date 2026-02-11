@@ -48,7 +48,7 @@ export default function TopBar() {
   }, [notifOpen]);
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="topbar-actions flex items-center gap-2 min-w-0">
       <ThemeToggle />
 
       <div className="relative" ref={notifRef}>
@@ -162,7 +162,7 @@ export default function TopBar() {
       <div className="relative">
         <button
           type="button"
-          className="inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg border px-2 sm:px-3.5 py-2 text-sm transition-colors min-w-0 max-w-full"
           style={{
             backgroundColor: "var(--bg-elevated)",
             borderColor: "var(--border-default)",
@@ -178,9 +178,9 @@ export default function TopBar() {
           }}
           onClick={() => setMenuOpen((prev) => !prev)}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <div
-              className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold"
+              className="w-6 h-6 flex-shrink-0 rounded-full flex items-center justify-center text-xs font-semibold"
               style={{
                 backgroundColor: "var(--color-primary-100)",
                 color: "var(--color-primary-700)",
@@ -188,7 +188,7 @@ export default function TopBar() {
             >
               {(me.eng_name?.[0] || me.kor_name?.[0] || me.emp_no?.[0] || "U").toUpperCase()}
             </div>
-            <span className="font-medium" style={{ color: "var(--text-primary)" }}>
+            <span className="font-medium truncate max-w-[80px] sm:max-w-[160px]" style={{ color: "var(--text-primary)" }}>
               {me.eng_name ?? me.kor_name ?? me.emp_no ?? "사용자"}
             </span>
           </div>

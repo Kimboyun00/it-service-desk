@@ -304,9 +304,9 @@ export default function AdminAllTicketsPage() {
         subtitle="전체 요청을 검색하고 관리하세요."
         icon={<ListChecks className="w-7 h-7" />}
         actions={
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap w-full min-w-0">
             <div
-              className="flex items-center gap-1 rounded-lg border px-1.5 py-1.5"
+              className="flex items-center gap-1 rounded-lg border px-1.5 py-1.5 flex-shrink-0"
               style={{
                 backgroundColor: "var(--bg-elevated)",
                 borderColor: "var(--border-default)",
@@ -338,10 +338,10 @@ export default function AdminAllTicketsPage() {
                 </button>
               ))}
             </div>
-            <div className="relative">
+            <div className="relative flex-1 min-w-0 sm:min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
               <input
-                className="border rounded-lg pl-10 pr-3 py-2 text-sm w-80 transition-colors"
+                className="border rounded-lg pl-10 pr-3 py-2 text-sm w-full min-w-0 sm:w-80 transition-colors"
                 style={{
                   backgroundColor: "var(--bg-input)",
                   borderColor: "var(--border-default)",
@@ -525,7 +525,7 @@ export default function AdminAllTicketsPage() {
                 </tbody>
               </table>
             </div>
-            <div className="px-6 py-4 border-t flex flex-wrap items-center justify-end gap-4" style={{ borderColor: "var(--border-default)" }}>
+            <div className="px-4 sm:px-6 py-4 border-t w-full min-w-0" style={{ borderColor: "var(--border-default)" }}>
               <Pagination page={page} total={sorted.length} pageSize={pageSize} onChange={setPage} />
             </div>
             <div className="px-6 py-3 border-t flex flex-wrap items-center justify-end" style={{ borderColor: "var(--border-default)", backgroundColor: "var(--bg-subtle)" }}>

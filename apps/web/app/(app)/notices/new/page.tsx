@@ -118,7 +118,7 @@ export default function NewNoticePage() {
         subtitle="새 공지사항을 등록합니다."
         icon={<Megaphone className="h-7 w-7" strokeWidth={2} />}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full min-w-0">
             <button
               type="button"
               className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"

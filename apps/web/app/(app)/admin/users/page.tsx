@@ -203,13 +203,13 @@ export default function AdminUsersPage() {
         subtitle="권한 설정과 기본 정보를 관리합니다."
         icon={<Users className="w-7 h-7" strokeWidth={2} />}
         actions={
-          <div className="relative">
+          <div className="relative w-full min-w-0">
             <Search
               className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
               style={{ color: "var(--text-tertiary)" }}
             />
             <input
-              className="border rounded-lg pl-10 pr-3 py-2 text-sm w-80 md:w-[420px] focus:outline-none focus:ring-2 transition-all"
+              className="border rounded-lg pl-10 pr-3 py-2 text-sm w-full min-w-0 md:w-[420px] focus:outline-none focus:ring-2 transition-all"
               style={{
                 borderColor: "var(--border-default)",
                 backgroundColor: "var(--bg-card)",

@@ -237,9 +237,9 @@ export default function ReviewTicketsPage() {
         subtitle="검토 대기 중인 요청을 확인하세요."
         icon={<Eye className="w-7 h-7" />}
         actions={
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap w-full min-w-0">
             <select
-              className="border rounded-lg px-3 py-2 text-sm transition-colors"
+              className="border rounded-lg px-3 py-2 text-sm transition-colors flex-1 min-w-0 sm:flex-initial"
               style={{
                 backgroundColor: "var(--bg-input)",
                 borderColor: "var(--border-default)",
@@ -256,10 +256,10 @@ export default function ReviewTicketsPage() {
               ))}
             </select>
 
-            <div className="relative">
+            <div className="relative flex-1 min-w-0 sm:min-w-[140px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
               <input
-                className="border rounded-lg pl-10 pr-3 py-2 text-sm w-56 transition-colors"
+                className="border rounded-lg pl-10 pr-3 py-2 text-sm w-full min-w-0 sm:w-56 transition-colors"
                 style={{
                   backgroundColor: "var(--bg-input)",
                   borderColor: "var(--border-default)",

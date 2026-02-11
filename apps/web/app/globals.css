@@ -459,4 +459,11 @@ nextjs-portal,
     padding-top: 0.75rem;
     padding-bottom: 0.75rem;
   }
+
+  /* 상단바 아이콘/버튼 터치 영역 */
+  .topbar-actions > button,
+  .topbar-actions > div > button {
+    min-width: 44px;
+    min-height: 44px;
+  }
 }

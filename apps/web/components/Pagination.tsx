@@ -11,16 +11,16 @@ export default function Pagination({ page, total, pageSize = 10, onChange }: Pro
 
   return (
     <div
-      className="flex items-center justify-between pb-4 border-b"
+      className="flex flex-wrap items-center justify-center sm:justify-between gap-3 pb-4 border-b"
       style={{ borderColor: "var(--border-default)" }}
     >
-      <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
+      <div className="text-sm order-2 sm:order-1" style={{ color: "var(--text-secondary)" }}>
         총 <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{total}</span>개 항목
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-center gap-2 order-1 sm:order-2">
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center justify-center gap-1.5 rounded-lg border px-2.5 sm:px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] sm:min-h-0"
           style={{
             borderColor: "var(--border-default)",
             backgroundColor: "var(--bg-card)",
@@ -42,19 +42,19 @@ export default function Pagination({ page, total, pageSize = 10, onChange }: Pro
           disabled={page <= 1}
           aria-label="이전 페이지"
         >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+          <svg className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          이전
+          <span className="hidden sm:inline">이전</span>
         </button>
-        <div className="px-3 text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+        <div className="px-3 text-sm font-medium whitespace-nowrap" style={{ color: "var(--text-primary)" }}>
           <span style={{ color: "var(--color-primary-600)" }}>{page}</span>
           <span className="mx-1" style={{ color: "var(--text-tertiary)" }}>/</span>
           <span>{totalPages}</span>
         </div>
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center justify-center gap-1.5 rounded-lg border px-2.5 sm:px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] sm:min-h-0"
           style={{
             borderColor: "var(--border-default)",
             backgroundColor: "var(--bg-card)",
@@ -76,8 +76,8 @@ export default function Pagination({ page, total, pageSize = 10, onChange }: Pro
           disabled={page >= totalPages}
           aria-label="다음 페이지"
         >
-          다음
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+          <span className="hidden sm:inline">다음</span>
+          <svg className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         </button>

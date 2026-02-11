@@ -282,9 +282,9 @@ export default function TicketsPage() {
         subtitle="진행 중인 요청을 확인하고 관리하세요."
         icon={<ClipboardList className="w-7 h-7" />}
         actions={
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap w-full min-w-0">
             <div
-              className="hidden md:flex items-center gap-1 rounded-lg border px-1.5 py-1.5"
+              className="hidden md:flex items-center gap-1 rounded-lg border px-1.5 py-1.5 flex-shrink-0"
               style={{
                 backgroundColor: "var(--bg-elevated)",
                 borderColor: "var(--border-default)",
@@ -318,7 +318,7 @@ export default function TicketsPage() {
             </div>
 
             <select
-              className="border rounded-lg px-3 py-2 text-sm transition-colors"
+              className="border rounded-lg px-3 py-2 text-sm transition-colors flex-1 min-w-0 sm:flex-initial"
               style={{
                 backgroundColor: "var(--bg-input)",
                 borderColor: "var(--border-default)",
@@ -335,10 +335,10 @@ export default function TicketsPage() {
               ))}
             </select>
 
-            <div className="relative">
+            <div className="relative flex-1 min-w-0 sm:min-w-[140px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
               <input
-                className="border rounded-lg pl-10 pr-3 py-2 text-sm w-56 transition-colors"
+                className="border rounded-lg pl-10 pr-3 py-2 text-sm w-full min-w-0 sm:w-56 transition-colors"
                 style={{
                   backgroundColor: "var(--bg-input)",
                   borderColor: "var(--border-default)",
